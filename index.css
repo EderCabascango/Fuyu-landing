@@ -1043,6 +1043,10 @@ a {
         display: none; /* Hide standard nav link menu on mobile */
     }
     
+    #btn-schedule-header {
+        display: none;
+    }
+    
     .mobile-menu-toggle {
         display: block;
     }
