@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fuyu Soluciones en Datos - Desbloquea el poder de tu empresa y automatiza tu éxito. Consultoría estratégica para tus negocios.">
+    <meta name="keywords" content="Fuyu, datos, automatización, business intelligence, consultoría, Ecuador, floricultura, KPI">
+    <title>Fuyu - Soluciones en Datos y Automatización Empresarial</title>
+    <!-- Google Fonts: Outfit for titles, Inter for body text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for professional icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <!-- Module 1: Professional Header & Navigation -->
+    <header class="main-header" id="header">
+        <div class="header-container">
+            <a href="#inicio" class="logo-wrapper" id="logo-link">
+                <img src="assets/fuyudatoslogo.jpg" alt="Fuyu Logo" class="header-logo" id="fuyu-main-logo">
+                <div class="logo-text">
+                    <span class="logo-brand">Fuyu</span>
+                    <span class="logo-slogan">Soluciones en datos</span>
+                </div>
+            </a>
+            
+            <nav class="nav-menu" id="navigation-menu">
+                <a href="#inicio" class="nav-link active">Inicio</a>
+                <a href="#servicios" class="nav-link">Servicios</a>
+                <a href="#casos" class="nav-link">Casos de Éxito</a>
+                <a href="#nosotros" class="nav-link">Nosotros</a>
+                <a href="#contacto" class="nav-link">Contacto</a>
+            </nav>
+
+            <div class="header-actions">
+                <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20gustar%C3%ADa%20agendar%20una%20consultor%C3%ADa%20gratuita" target="_blank" rel="noopener" class="btn btn-primary" id="btn-schedule-header">Agendar Consulta</a>
+                <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Abrir menú">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Module 2: Hero Section (The Hook) -->
+    <section class="hero-section" id="inicio">
+        <!-- Interactive network background container -->
+        <canvas id="hero-network-canvas" class="hero-canvas"></canvas>
+        
+        <div class="hero-container container">
+            <div class="hero-content">
+                <h1 class="hero-title" id="hero-headline">
+                    Desbloquea el Poder de tu empresa y automatiza tu Éxito.
+                </h1>
+                <p class="hero-subtitle" id="hero-subheadline">
+                    Transformamos la complejidad operativa en eficiencia y rentabilidad. Consultoría especializada para tus negocios.
+                </p>
+                <div class="hero-cta-wrapper">
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20gustar%C3%ADa%20solicitar%20la%20evaluaci%C3%B3n%20gratuita%20para%20mi%20empresa" target="_blank" rel="noopener" class="btn btn-hero btn-large" id="btn-hero-cta">Quiero una Evaluación Gratuita</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 3: Problem/Solution ("¿Por qué Fuyu?") -->
+    <section class="problem-solution-section section-padding" id="por-que-fuyu">
+        <div class="container">
+            <h2 class="section-title text-center" id="prob-sol-title">¿Cansado de la <span class="text-orange">Ineficiencia Operativa</span> y de no saber qué dicen tus <span class="text-magenta">Datos</span>?</h2>
+            
+            <div class="grid grid-2" id="prob-sol-grid">
+                <!-- Left Card: Pain Points -->
+                <div class="card card-pain" id="card-pain-points">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-gears card-icon text-grey"></i>
+                    </div>
+                    <h3 class="card-title">Obstáculos en tu Operación</h3>
+                    <ul class="benefit-list pain-list">
+                        <li>
+                            <i class="fa-solid fa-circle-xmark icon-bullet text-grey"></i>
+                            <span><strong>Múltiples Procesos Manuales:</strong> Pérdida de tiempo valioso en tareas repetitivas y propensas a errores.</span>
+                        </li>
+                        <li>
+                            <i class="fa-solid fa-circle-xmark icon-bullet text-grey"></i>
+                            <span><strong>Falta de Claridad en KPIs:</strong> Decisiones basadas en el instinto debido a datos dispersos y no estructurados.</span>
+                        </li>
+                        <li>
+                            <i class="fa-solid fa-circle-xmark icon-bullet text-grey"></i>
+                            <span><strong>Decisiones Basadas en Intuición:</strong> Dificultad para medir el retorno de tus estrategias operativas.</span>
+                        </li>
+                    </ul>
+                    <p class="card-footer-text">Tu negocio puede dar más.</p>
+                </div>
+
+                <!-- Right Card: Fuyu Solution -->
+                <div class="card card-solution" id="card-fuyu-solution">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-brain card-icon text-orange"></i>
+                    </div>
+                    <h3 class="card-title">La Ventaja Fuyu</h3>
+                    <ul class="benefit-list solution-list">
+                        <li>
+                            <i class="fa-solid fa-circle-check icon-bullet text-orange"></i>
+                            <span><strong>Automatización Inteligente:</strong> Liberación de tiempo operativo mediante flujos de trabajo autónomos y eficaces.</span>
+                        </li>
+                        <li>
+                            <i class="fa-solid fa-circle-check icon-bullet text-orange"></i>
+                            <span><strong>Visualización Estratégica de Datos:</strong> Dashboards dinámicos e intuitivos para monitorear tu negocio en tiempo real.</span>
+                        </li>
+                        <li>
+                            <i class="fa-solid fa-circle-check icon-bullet text-orange"></i>
+                            <span><strong>Decisiones Basadas en Evidencia:</strong> Insights y datos precisos aplicados a la realidad de tu empresa.</span>
+                        </li>
+                    </ul>
+                    <p class="card-footer-text text-orange">Nuestra experiencia, tu ventaja.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 4: Services Overview (Modular & Specific) -->
+    <section class="services-section section-padding" id="servicios">
+        <div class="container">
+            <h2 class="section-title text-center" id="services-title">Nuestras Soluciones de Datos y Automatización</h2>
+            
+            <div class="grid grid-3" id="services-grid">
+                <!-- Service 1: WhatsApp Sales Assistant -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </div>
+                    <h3 class="service-card-title">Asistentes de Ventas 24/7</h3>
+                    <p class="service-description">
+                        Nunca pierdas un cliente. Chatbots inteligentes por WhatsApp que responden dudas, muestran tu catálogo y atienden de forma automática las 24 horas, incluso en feriados.
+                    </p>
+                    <span class="service-tag">Ideal para: Todo Sector / Comercial</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20un%20Asistente%20de%20Ventas%20por%20WhatsApp%2024/7" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 2: Invoice Automation -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <h3 class="service-card-title">Procesamiento de Facturas e IA</h3>
+                    <p class="service-description">
+                        Adiós al papeleo manual. Nuestro sistema inteligente extrae información clave de facturas o PDFs mediante IA y la organiza automáticamente en tu base de datos.
+                    </p>
+                    <span class="service-tag">Ideal para: Contabilidad y Operaciones</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20interesa%20la%20lectura%20automatica%20de%20facturas%20y%20PDFs" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 3: Inventory Prediction -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <h3 class="service-card-title">Predicción de Inventario y Ventas</h3>
+                    <p class="service-description">
+                        Anticípate a la demanda. Analizamos tu historial de ventas para predecir el inventario óptimo de productos, insumos o flores para la siguiente semana, reduciendo desperdicios.
+                    </p>
+                    <span class="service-tag">Ideal para: Floricultura y Rosas</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20saber%20mas%20sobre%20Prediccion%20de%20Inventario" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 4: Smart Agenda -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <h3 class="service-card-title">Agenda Inteligente y Recordatorios</h3>
+                    <p class="service-description">
+                        Reservas de citas automatizadas con recordatorios proactivos por WhatsApp. Ideal para consultorios y servicios profesionales que buscan reducir inasistencias.
+                    </p>
+                    <span class="service-tag">Ideal para: Clínicas y Consultorios</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20necesito%20la%20Agenda%20Inteligente%20con%20recordatorios%20por%20WhatsApp" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 5: Subscriptions and payments -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-credit-card"></i>
+                    </div>
+                    <h3 class="service-card-title">Gestión de Suscripciones y Pagos</h3>
+                    <p class="service-description">
+                        Control automático de membresías, cobros recurrentes y renovaciones. Envía alertas de pago y avisos de vencimiento directamente por WhatsApp.
+                    </p>
+                    <span class="service-tag">Ideal para: Gimnasios y Clubes</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20busco%20automatizar%20Suscripciones%20y%20Pagos%20recurrentes" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 6: Booking Management -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-bed"></i>
+                    </div>
+                    <h3 class="service-card-title">Gestión de Reservas y Pedidos</h3>
+                    <p class="service-description">
+                        Controla la disponibilidad de habitaciones, mesas o pedidos en tiempo real. Integra todos tus canales en un solo panel y elimina el caos operativo en tu recepción.
+                    </p>
+                    <span class="service-tag">Ideal para: Hoteles y Restaurantes</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20saber%20mas%20de%20la%20Gestion%20de%20Reservas" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 7: Morosidad Control -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-money-bill-trend-up"></i>
+                    </div>
+                    <h3 class="service-card-title">Control de Morosidad por WhatsApp</h3>
+                    <p class="service-description">
+                        Evita el cobro manual y llamadas molestas. Automatizamos los recordatorios de pago amistosos, seguimiento de cartera vencida y avisos de cobro por chat.
+                    </p>
+                    <span class="service-tag">Ideal para: Empresas de Servicios</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20necesito%20el%20Control%20de%20Morosidad%20y%20cobros%20automaticos" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+
+                <!-- Service 8: Data Shield -->
+                <div class="card service-card">
+                    <div class="service-icon-wrapper">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h3 class="service-card-title">Bases de Datos Blindadas</h3>
+                    <p class="service-description">
+                        Protege tus bases de datos con análisis de amenazas en tiempo real. Evita filtraciones de información, brechas de seguridad y garantiza la privacidad de tus clientes.
+                    </p>
+                    <span class="service-tag">Seguridad y Privacidad</span>
+                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20proteger%20mis%20bases%20de%20datos%20y%20cumplir%20la%20ley" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 5: Client Success (Social Proof) -->
+    <section class="testimonials-section section-padding" id="casos">
+        <div class="container">
+            <h2 class="section-title text-center" id="testimonials-title">Empresas que Confían en Fuyu</h2>
+            
+            <div class="testimonials-carousel-wrapper">
+                <div class="testimonials-track" id="testimonials-track">
+                    <!-- Slide 1 -->
+                    <div class="testimonial-slide active">
+                        <div class="testimonial-content">
+                            <div class="rating-stars" id="rating-stars-1">
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                            </div>
+                            <p class="testimonial-quote">
+                                "Implementamos los tableros de Fuyu en nuestra cadena de gimnasios y pasamos de analizar reportes semanales atrasados a tomar decisiones sobre asistencia y membresías al instante. La claridad es absoluta."
+                            </p>
+                            <div class="testimonial-author">
+                                <div class="author-details">
+                                    <h4 class="author-name">Santiago Ortiz</h4>
+                                    <span class="author-role">Director de Operaciones, Fitness Center Quito</span>
+                                </div>
+                                <div class="company-logo-text">FITNESS CENTER</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2 -->
+                    <div class="testimonial-slide">
+                        <div class="testimonial-content">
+                            <div class="rating-stars" id="rating-stars-2">
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                                <i class="fa-solid fa-star star-accent"></i>
+                            </div>
+                            <p class="testimonial-quote">
+                                "Gracias a la automatización de flujos de exportación de rosas, redujimos los tiempos de respuesta con agentes de carga en un 35%. Fuyu entendió perfectamente los retos de nuestro sector floricultor."
+                            </p>
+                            <div class="testimonial-author">
+                                <div class="author-details">
+                                    <h4 class="author-name">Gabriela Larrea</h4>
+                                    <span class="author-role">Gerente General, Rosas de Cayambe</span>
+                                </div>
+                                <div class="company-logo-text">ROSAS CAYAMBE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carousel Controls -->
+                <div class="carousel-controls">
+                    <button class="carousel-btn prev-btn" id="carousel-prev" aria-label="Anterior slide">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="carousel-dots" id="carousel-dots">
+                        <span class="dot active" data-index="0"></span>
+                        <span class="dot" data-index="1"></span>
+                    </div>
+                    <button class="carousel-btn next-btn" id="carousel-next" aria-label="Siguiente slide">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 6: Tangible Benefits -->
+    <section class="benefits-section section-padding" id="beneficios">
+        <div class="container">
+            <h2 class="section-title text-center" id="benefits-title">¿Qué Ganas al Elegir Fuyu?</h2>
+            
+            <div class="benefits-layout">
+                <div class="benefits-grid" id="benefits-checklist">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h3>Mayor Eficiencia Operativa</h3>
+                            <p>Reducción de hasta un 30% en el tiempo de procesamiento manual de órdenes y generación de facturas.</p>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fa-solid fa-arrow-trend-down"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h3>Reducción de Costos Operativos</h3>
+                            <p>Menos desperdicio administrativo y reasignación de tus recursos clave a tareas de mayor valor estratégico.</p>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h3>Mejora en la Toma de Decisiones</h3>
+                            <p>Respaldamos tu experiencia gerencial con datos precisos históricos y modelos predictivos claros.</p>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h3>Acceso a Insights de Mercado Exclusivos</h3>
+                            <p>Visión global de negocio adaptada a la dinámica competitiva y normativa de tu mercado.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 7: Simple How It Works -->
+    <section class="how-it-works-section section-padding" id="como-funciona">
+        <div class="container">
+            <h2 class="section-title text-center" id="how-title">Tu Camino Hacia la Optimización</h2>
+            
+            <div class="timeline" id="process-timeline">
+                <div class="timeline-line"></div>
+                
+                <div class="timeline-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Consultoría Gratuita</h3>
+                        <p>Analizamos tus flujos actuales de datos y cuellos de botella iniciales sin ningún compromiso.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Auditoría y Diagnóstico</h3>
+                        <p>Diseñamos un mapa detallado del estado de tu infraestructura tecnológica y de tus procesos clave.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Desarrollo de Soluciones</h3>
+                        <p>Construimos tus dashboards, flujos automatizados de n8n e integraciones personalizadas.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Implementación y Entrenamiento</h3>
+                        <p>Desplegamos las herramientas y capacitamos a tu equipo para asegurar una transición fluida.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Soporte Continuo</h3>
+                        <p>Monitoreamos el rendimiento, resolvemos incidentes y escalamos tus flujos conforme creces.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 8: The Trust Guarantee -->
+    <section class="guarantee-section section-padding" id="nosotros">
+        <div class="container">
+            <div class="guarantee-container" id="trust-guarantee-block">
+                <div class="guarantee-header text-center">
+                    <span class="guarantee-tag">GARANTÍA FUYU</span>
+                    <h2 class="guarantee-title">Fuyu: Tu Socio Tecnológico de Confianza</h2>
+                </div>
+                <p class="guarantee-description text-center">
+                    Consultores locales con visión global. Creemos en la automatización ética, la soberanía de datos y el análisis transparente. No instalamos cajas negras; transferimos autonomía tecnológica a tu empresa.
+                </p>
+                <div class="guarantee-badges">
+                    <div class="badge-item">
+                        <i class="fa-solid fa-shield-halved badge-icon"></i>
+                        <span>Soberanía de Datos</span>
+                    </div>
+                    <div class="badge-item">
+                        <i class="fa-solid fa-location-dot badge-icon"></i>
+                        <span>Presencia y Soporte Local</span>
+                    </div>
+                    <div class="badge-item">
+                        <i class="fa-solid fa-handshake badge-icon"></i>
+                        <span>Compromiso de Transparencia</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Module 9: Footer & Global CTA -->
+    <section class="global-cta-section" id="contacto">
+        <div class="container text-center">
+            <h2 class="cta-title">¿Listo para Optimizar tu Negocio?</h2>
+            <p class="cta-subtitle">Da el primer paso hacia una gestión inteligente basada en evidencias con tu auditoría inicial gratuita.</p>
+            <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20gustar%C3%ADa%20agendar%20una%20consultor%C3%ADa%20gratuita%20de%20negocios" target="_blank" rel="noopener" class="btn btn-hero btn-large btn-cta-pulse" id="btn-final-cta">
+                <i class="fa-brands fa-whatsapp btn-whatsapp-icon"></i> Agendar Asesoría Gratuita
+            </a>
+        </div>
+    </section>
+
+    <footer class="main-footer" id="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand-column">
+                    <div class="footer-logo-wrapper">
+                        <img src="assets/fuyu_logo_dark.png" alt="Fuyu Logo Blanco" class="footer-logo" id="fuyu-footer-logo">
+                        <span class="footer-brand-name">Fuyu</span>
+                    </div>
+                    <p class="footer-brand-slogan">Soluciones en datos y automatización empresarial.</p>
+                </div>
+                
+                <div class="footer-links-column">
+                    <h4>Enlaces Rápidos</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="#inicio">Inicio</a></li>
+                        <li><a href="#servicios">Servicios</a></li>
+                        <li><a href="#casos">Casos de Éxito</a></li>
+                        <li><a href="#nosotros">Nosotros</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-contact-column">
+                    <h4>Contacto</h4>
+                    <ul class="footer-contact-list">
+                        <li><i class="fa-solid fa-envelope"></i> wladimireder@gmail.com</li>
+                        <li><i class="fa-solid fa-phone"></i> +593 939008880</li>
+                        <li><i class="fa-solid fa-location-dot"></i> Quito, Ecuador</li>
+                    </ul>
+                </div>
+
+                <div class="footer-social-column">
+                    <h4>Siguenos</h4>
+                    <div class="social-icons">
+                        <a href="https://linkedin.com" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+                        <a href="https://github.com" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+                        <a href="https://twitter.com" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom text-center">
+                <p>&copy; 2026 Fuyu. Todos los derechos reservados. Consultoría Estratégica Digital.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="index.js"></script>
+</body>
+</html>
