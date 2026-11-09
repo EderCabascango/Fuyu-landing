@@ -67,54 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. Client Testimonials Carousel
-    const slides = document.querySelectorAll('.testimonial-slide');
-    const dots = document.querySelectorAll('.carousel-dots .dot');
-    const prevBtn = document.getElementById('carousel-prev');
-    const nextBtn = document.getElementById('carousel-next');
-    let currentSlide = 0;
-    let carouselInterval;
-
-    function showSlide(index) {
-        slides.forEach(slide => slide.classList.remove('active'));
-        dots.forEach(dot => dot.classList.remove('active'));
-        
-        currentSlide = (index + slides.length) % slides.length;
-        
-        slides[currentSlide].classList.add('active');
-        dots[currentSlide].classList.add('active');
-    }
-
-    function startAutoplay() {
-        clearInterval(carouselInterval);
-        carouselInterval = setInterval(() => {
-            showSlide(currentSlide + 1);
-        }, 7000);
-    }
-
-    if (prevBtn && nextBtn) {
-        prevBtn.addEventListener('click', () => {
-            showSlide(currentSlide - 1);
-            startAutoplay();
-        });
-
-        nextBtn.addEventListener('click', () => {
-            showSlide(currentSlide + 1);
-            startAutoplay();
-        });
-    }
-
-    dots.forEach(dot => {
-        dot.addEventListener('click', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            showSlide(index);
-            startAutoplay();
-        });
-    });
-
-    startAutoplay();
-
-    // 4. Hero Section Canvas Interactive Network Animation
+    // 3. Hero Section Canvas Interactive Network Animation
     const canvas = document.getElementById('hero-network-canvas');
     if (canvas) {
         const ctx = canvas.getContext('2d');
