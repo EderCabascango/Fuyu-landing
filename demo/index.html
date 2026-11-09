@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Demo Fuyu - Rosas del Valle (Ejemplo)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-page: #F8F9FA;
+            --bg-card: #FFFFFF;
+            --navy-dark: #0A1F44;
+            --navy-light: #1A2F54;
+            --orange: #FF9100;
+            --orange-dark: #E07F00;
+            --magenta: #E91E63;
+            --green: #2E7D32;
+            --green-bg: #E8F5E9;
+            --yellow: #F57F17;
+            --yellow-bg: #FFF9C4;
+            --red: #C62828;
+            --red-bg: #FFEBEE;
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --border-light: #E2E8F0;
+            --whatsapp-green: #25D366;
+            --radius-card: 16px;
+            --radius-btn: 50px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.45;
+            padding-bottom: 95px; /* Espacio para el botón flotante inferior */
+            font-size: 15px;
+        }
+
+        /* Contenedor mobile-first */
+        .app-container {
+            max-width: 520px;
+            margin: 0 auto;
+            background: var(--bg-page);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Barra Superior / Header */
+        .app-header {
+            background: var(--navy-dark);
+            color: #FFFFFF;
+            padding: 16px 20px 20px 20px;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: 0 4px 20px rgba(10, 31, 68, 0.12);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .header-logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-logo-img {
+            height: 38px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .header-brand {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #FFFFFF;
+            line-height: 1;
+        }
+
+        .demo-badge-pill {
+            background: rgba(255, 145, 0, 0.2);
+            border: 1px solid var(--orange);
+            color: #FFB74D;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 50px;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .finca-card-header {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .finca-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .finca-meta {
+            font-size: 0.8rem;
+            color: #CBD5E0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .finca-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Navegación por Pestañas (3 Pantallas) */
+        .tabs-nav {
+            display: flex;
+            background: #FFFFFF;
+            margin: 14px 16px 16px 16px;
+            padding: 6px;
+            border-radius: 50px;
+            box-shadow: 0 2px 8px rgba(10, 31, 68, 0.06);
+            border: 1px solid var(--border-light);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 8px;
+            border-radius: 50px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            background: var(--navy-dark);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(10, 31, 68, 0.15);
+        }
+
+        .tab-btn.active i {
+            color: var(--orange);
+        }
+
+        /* Pantallas */
+        .tab-content {
+            display: none;
+            padding: 0 16px;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tarjetas de Información */
+        .info-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-card);
+            padding: 18px;
+            margin-bottom: 14px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 2px 6px rgba(10, 31, 68, 0.04);
+        }
+
+        .card-header-simple {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .card-title-lg {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--navy-dark);
+        }
+
+        .card-subtext {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: -8px;
+            margin-bottom: 14px;
+        }
+
+        /* Resumen de 3 Cifras Clave (Pantalla 1) */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .metric-box {
+            background: #F7FAFC;
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border-light);
+        }
+
+        .metric-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+
+        .metric-num {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--navy-dark);
+            line-height: 1.1;
+        }
+
+        .metric-unit {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .metric-box.box-danger {
+            background: var(--red-bg);
+            border-color: rgba(198, 40, 40, 0.2);
+        }
+        .metric-box.box-danger .metric-num {
+            color: var(--red);
+        }
+
+        .metric-box.box-success {
+            background: var(--green-bg);
+            border-color: rgba(46, 125, 50, 0.2);
+        }
+        .metric-box.box-success .metric-num {
+            color: var(--green);
+        }
+
+        /* Alerta de Riesgo en Pantalla */
+        .alert-box {
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.88rem;
+            line-height: 1.35;
+        }
+
+        .alert-warning {
+            background: #FFF3E0;
+            border: 1px solid #FFE0B2;
+            color: #E65100;
+        }
+
+        .alert-warning i {
+            font-size: 1.1rem;
+            margin-top: 2px;
+            color: var(--orange-dark);
+        }
+
+        /* Lista de Variedades con Semáforos */
+        .variedad-item {
+            border-bottom: 1px solid var(--border-light);
+            padding: 14px 0;
+        }
+
+        .variedad-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .variedad-item:first-child {
+            padding-top: 0;
+        }
+
+        .variedad-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .variedad-name-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .variedad-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--navy-dark);
+        }
+
+        .status-pill {
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pill-rojo {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid rgba(198, 40, 40, 0.25);
+        }
+
+        .pill-amarillo {
+            background: var(--yellow-bg);
+            color: #8D6E00;
+            border: 1px solid rgba(245, 127, 23, 0.25);
+        }
+
+        .pill-verde {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(46, 125, 50, 0.25);
+        }
+
+        .variedad-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.84rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .variedad-stats strong {
+            color: var(--navy-dark);
+            font-weight: 600;
+        }
+
+        /* Barra de Progreso / Cobertura */
+        .progress-bar-wrap {
+            height: 8px;
+            background: #E2E8F0;
+            border-radius: 50px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 50px;
+            transition: width 0.3s ease;
+        }
+
+        .fill-red { background: var(--red); }
+        .fill-yellow { background: var(--yellow); }
+        .fill-green { background: var(--green); }
+
+        /* Pantalla 2: ¿Le alcanza para San Valentín? */
+        .valentin-week-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .week-pill-badge {
+            background: #EDF2F7;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--navy-dark);
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .valentin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .valentin-table th {
+            text-align: left;
+            padding: 8px 6px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            text-transform: uppercase;
+        }
+
+        .valentin-table td {
+            padding: 10px 6px;
+            border-bottom: 1px solid #F1F5F9;
+        }
+
+        .valentin-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .valentin-deficit-text {
+            color: var(--red);
+            font-weight: 700;
+        }
+
+        .valentin-surplus-text {
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        /* Pantalla 3: Dónde se pierde la flor */
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .ranking-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .ranking-pos {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #EDF2F7;
+            color: var(--navy-dark);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .pos-top1 {
+            background: #FEE2E2;
+            color: var(--red);
+            border: 1px solid rgba(198, 40, 40, 0.3);
+        }
+
+        .pos-top2 {
+            background: #FFEDD5;
+            color: #C2410C;
+        }
+
+        .ranking-info {
+            flex-grow: 1;
+        }
+
+        .ranking-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.98rem;
+            color: var(--navy-dark);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ranking-loss-usd {
+            color: var(--red);
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .ranking-reason {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .ranking-bars-inline {
+            display: flex;
+            gap: 8px;
+            font-size: 0.74rem;
+            margin-top: 4px;
+        }
+
+        .tag-descarte {
+            background: #FEE2E2;
+            color: #991B1B;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .tag-nacional {
+            background: #FEF3C7;
+            color: #92400E;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Botón Inferior Flotante de Conversión */
+        .floating-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(10, 31, 68, 0.08);
+            padding: 14px 20px 18px 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-whatsapp-cta {
+            width: 100%;
+            max-width: 480px;
+            background: var(--whatsapp-green);
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 15px 20px;
+            border-radius: var(--radius-btn);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 18px rgba(37, 211, 102, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-whatsapp-cta:active {
+            transform: scale(0.98);
+        }
+
+        .btn-whatsapp-cta i {
+            font-size: 1.35rem;
+        }
+
+        /* Enlace de regreso a la portada */
+        .back-home-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .back-home-link:hover {
+            color: var(--navy-dark);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- Header Móvil -->
+        <header class="app-header">
+            <div class="header-top">
+                <div class="header-logo-group">
+                    <img src="../assets/fuyudatoslogo.png" alt="Fuyu Logo" class="header-logo-img">
+                    <span class="header-brand">Fuyu</span>
+                </div>
+                <div class="demo-badge-pill">
+                    <i class="fa-solid fa-circle-info"></i> Ejemplo con una finca ficticia
+                </div>
+            </div>
+            
+            <div class="finca-card-header">
+                <div class="finca-name">
+                    <i class="fa-solid fa-seedling" style="color: var(--orange);"></i> Rosas del Valle (Ejemplo)
+                </div>
+                <div class="finca-meta">
+                    <span><i class="fa-solid fa-location-dot"></i> Cayambe - Tabacundo</span>
+                    <span><i class="fa-solid fa-layer-group"></i> 12 Bloques</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegación de 3 Pantallas -->
+        <nav class="tabs-nav" id="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('tab-semana')">
+                <i class="fa-solid fa-calendar-check"></i> Esta semana
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-valentin')">
+                <i class="fa-solid fa-heart"></i> San Valentín
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-perdidas')">
+                <i class="fa-solid fa-trash-can"></i> Pérdidas
+            </button>
+        </nav>
+
+        <!-- ==============================================
+             PANTALLA 1: "Su finca esta semana"
+             ============================================== -->
+        <section class="tab-content active" id="tab-semana">
+            
+            <div class="info-card">
+                <div class="card-header-simple">
+                    <h2 class="card-title-lg">Su finca esta semana</h2>
+                    <span class="week-pill-badge">Semana 4 (Pico de corte)</span>
+                </div>
+                <p class="card-subtext">Tallos listos en cuarto frío frente a pedidos confirmados.</p>
+
+                <!-- Cifras Claves -->
+                <div class="metrics-row">
+                    <div class="metric-box">
+                        <div class="metric-label">Flor que tendrá</div>
+                        <div class="metric-num">476k</div>
+                        <span class="metric-unit">tallos de exportación</span>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Flor vendida</div>
+                        <div class="metric-num">485k</div>
+                        <span class="metric-unit">pedidos en firme</span>
+                    </div>
+                    <div class="metric-box box-danger">
+                        <div class="metric-label">Flor libre</div>
+                        <div class="metric-num">-9,035</div>
+                        <span class="metric-unit">déficit en rojas</span>
+                    </div>
+                </div>
+
+                <div class="alert-box alert-warning">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <strong>Atención en rojas:</strong> Los pedidos de Freedom y Explorer superan lo que tiene disponible para cortar. En cambio, le queda flor libre en Mondial y Playa Blanca.
+                    </div>
+                </div>
+
+                <!-- Detalle por Variedad -->
+                <div id="lista-variedades">
+                    <!-- Freedom -->
+                    <div class="variedad-item">
+                        <div class="variedad-header">
+                            <div class="variedad-name-group">
+                                <span class="color-dot" style="background: #D32F2F;"></span>
+                                <span class="variedad-name">Freedom</span>
+                            </div>
+                            <span class="status-pill pill-rojo">
+                                <i class="fa-solid fa-circle-xmark"></i> Faltan 16,723 tallos
+                            </span>
+                        </div>
+                        <div class="variedad-stats">
+                            <span>Tendrá: <strong>152,040</strong></span>
+                            <span>Vendidos: <strong>168,763</strong></span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill fill-red" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Explorer -->
+                    <div class="variedad-item">
+                        <div class="variedad-header">
+                            <div class="variedad-name-group">
+                                <span class="color-dot" style="background: #8B0000;"></span>
+                                <span class="variedad-name">Explorer</span>
+                            </div>
+                            <span class="status-pill pill-rojo">
+                                <i class="fa-solid fa-circle-xmark"></i> Faltan 7,286 tallos
+                            </span>
+                        </div>
+                        <div class="variedad-stats">
+                            <span>Tendrá: <strong>104,102</strong></span>
+                            <span>Vendidos: <strong>111,388</strong></span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill fill-red" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vendela -->
+                    <div class="variedad-item">
+                        <div class="variedad-header">
+                            <div class="variedad-name-group">
+                                <span class="color-dot" style="background: #FFFDD0; border-color:#ccc;"></span>
+                                <span class="variedad-name">Vendela</span>
+                            </div>
+                            <span class="status-pill pill-amarillo">
+                                <i class="fa-solid fa-circle-exclamation"></i> Justo (+716 libres)
+                            </span>
+                        </div>
+                        <div class="variedad-stats">
+                            <span>Tendrá: <strong>71,483</strong></span>
+                            <span>Vendidos: <strong>70,767</strong></span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill fill-yellow" style="width: 99%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mondial -->
+                    <div class="variedad-item">
+                        <div class="variedad-header">
+                            <div class="variedad-name-group">
+                                <span class="color-dot" style="background: #E0E0E0; border-color:#bbb;"></span>
+                                <span class="variedad-name">Mondial</span>
+                            </div>
+                            <span class="status-pill pill-verde">
+                                <i class="fa-solid fa-circle-check"></i> Sobran 5,793 tallos
+                            </span>
+                        </div>
+                        <div class="variedad-stats">
+                            <span>Tendrá: <strong>64,365</strong></span>
+                            <span>Vendidos: <strong>58,572</strong></span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill fill-green" style="width: 91%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Playa Blanca -->
+                    <div class="variedad-item">
+                        <div class="variedad-header">
+                            <div class="variedad-name-group">
+                                <span class="color-dot" style="background: #FFFFFF; border-color:#ccc;"></span>
+                                <span class="variedad-name">Playa Blanca</span>
+                            </div>
+                            <span class="status-pill pill-verde">
+                                <i class="fa-solid fa-circle-check"></i> Sobran 5,874 tallos
+                            </span>
+                        </div>
+                        <div class="variedad-stats">
+                            <span>Tendrá: <strong>58,732</strong></span>
+                            <span>Vendidos: <strong>52,858</strong></span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill fill-green" style="width: 90%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pink Floyd -->
+                    <div class="variedad-item">
+                        <div class="variedad-header">
+                            <div class="variedad-name-group">
+                                <span class="color-dot" style="background: #E91E63;"></span>
+                                <span class="variedad-name">Pink Floyd</span>
+                            </div>
+                            <span class="status-pill pill-verde">
+                                <i class="fa-solid fa-circle-check"></i> Sobran 2,590 tallos
+                            </span>
+                        </div>
+                        <div class="variedad-stats">
+                            <span>Tendrá: <strong>25,902</strong></span>
+                            <span>Vendidos: <strong>23,312</strong></span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill fill-green" style="width: 90%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <a href="../" class="back-home-link">← Volver a la portada de Fuyu</a>
+        </section>
+
+        <!-- ==============================================
+             PANTALLA 2: "¿Le alcanza para San Valentín?"
+             ============================================== -->
+        <section class="tab-content" id="tab-valentin">
+            <div class="info-card">
+                <div class="card-header-simple">
+                    <h2 class="card-title-lg">¿Le alcanza para San Valentín?</h2>
+                    <span class="week-pill-badge">Enero - Febrero</span>
+                </div>
+                <p class="card-subtext">Semáforo semana a semana para no sobrevender ni rematar flor.</p>
+
+                <!-- Semana 3 -->
+                <div class="valentin-week-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong>Semana 3 (15 al 21 Enero)</strong>
+                        <span class="status-pill pill-verde">Flor suficiente</span>
+                    </div>
+                    <table class="valentin-table">
+                        <thead>
+                            <tr>
+                                <th>Variedad</th>
+                                <th>Corte estimado</th>
+                                <th>Pedidos</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Freedom</td>
+                                <td>118,500</td>
+                                <td>114,200</td>
+                                <td class="valentin-surplus-text">+4,300</td>
+                            </tr>
+                            <tr>
+                                <td>Explorer</td>
+                                <td>81,400</td>
+                                <td>78,100</td>
+                                <td class="valentin-surplus-text">+3,300</td>
+                            </tr>
+                            <tr>
+                                <td>Blancas y color</td>
+                                <td>174,000</td>
+                                <td>156,000</td>
+                                <td class="valentin-surplus-text">+18,000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Semana 4 (Crítica) -->
+                <div class="valentin-week-card" style="border: 2px solid var(--red);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong style="color:var(--red);"><i class="fa-solid fa-fire"></i> Semana 4 (Pico de despachos)</strong>
+                        <span class="status-pill pill-rojo">Riesgo en rojas</span>
+                    </div>
+                    <table class="valentin-table">
+                        <thead>
+                            <tr>
+                                <th>Variedad</th>
+                                <th>Corte estimado</th>
+                                <th>Pedidos</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Freedom</strong></td>
+                                <td>152,040</td>
+                                <td>168,763</td>
+                                <td class="valentin-deficit-text">-16,723 (FALTA)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Explorer</strong></td>
+                                <td>104,102</td>
+                                <td>111,388</td>
+                                <td class="valentin-deficit-text">-7,286 (FALTA)</td>
+                            </tr>
+                            <tr>
+                                <td>Vendela</td>
+                                <td>71,483</td>
+                                <td>70,767</td>
+                                <td style="color:var(--yellow); font-weight:700;">+716 (Al límite)</td>
+                            </tr>
+                            <tr>
+                                <td>Mondial / Blancas</td>
+                                <td>123,097</td>
+                                <td>111,430</td>
+                                <td class="valentin-surplus-text">+11,667 (Libre)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Semana 5 -->
+                <div class="valentin-week-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong>Semana 5 (Últimos vuelos)</strong>
+                        <span class="status-pill pill-amarillo">Ajustado</span>
+                    </div>
+                    <table class="valentin-table">
+                        <thead>
+                            <tr>
+                                <th>Variedad</th>
+                                <th>Corte estimado</th>
+                                <th>Pedidos</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Freedom</td>
+                                <td>112,000</td>
+                                <td>110,400</td>
+                                <td class="valentin-surplus-text">+1,600</td>
+                            </tr>
+                            <tr>
+                                <td>Explorer</td>
+                                <td>76,500</td>
+                                <td>75,800</td>
+                                <td class="valentin-surplus-text">+700</td>
+                            </tr>
+                            <tr>
+                                <td>Blancas y color</td>
+                                <td>159,000</td>
+                                <td>138,000</td>
+                                <td class="valentin-surplus-text">+21,000 (Sobra)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert-box" style="background:#F0FDF4; border:1px solid #BBF7D0; color:#166534;">
+                    <i class="fa-solid fa-lightbulb" style="color:var(--green); font-size:1.1rem; margin-top:2px;"></i>
+                    <div>
+                        <strong>Consejo comercial:</strong> Bloquee ventas abiertas de Freedom 60 y 70 cm. Promueva combos con Mondial o Playa Blanca donde todavía tiene flor disponible.
+                    </div>
+                </div>
+            </div>
+
+            <a href="../" class="back-home-link">← Volver a la portada de Fuyu</a>
+        </section>
+
+        <!-- ==============================================
+             PANTALLA 3: "Dónde se pierde la flor"
+             ============================================== -->
+        <section class="tab-content" id="tab-perdidas">
+            <div class="info-card">
+                <div class="card-header-simple">
+                    <h2 class="card-title-lg">Dónde se pierde la flor</h2>
+                    <span class="week-pill-badge">Semana 4</span>
+                </div>
+                <p class="card-subtext">Ranking de bloques con mayor descarte y flor que se quedó nacional.</p>
+
+                <!-- Resumen de plata perdida -->
+                <div class="metrics-row" style="grid-template-columns: 1fr 1fr;">
+                    <div class="metric-box box-danger">
+                        <div class="metric-label">Descarte a la basura</div>
+                        <div class="metric-num">37,108</div>
+                        <span class="metric-unit">tallos (6.8% de corte)</span>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Flor a nacional</div>
+                        <div class="metric-num">31,729</div>
+                        <span class="metric-unit">tallos (5.8% de corte)</span>
+                    </div>
+                </div>
+
+                <div style="background:#FFF1F2; border-radius:12px; padding:12px; margin-bottom:16px; border:1px solid #FFE4E6; text-align:center;">
+                    <span style="font-size:0.8rem; color:#9F1239; font-weight:600;">VALOR QUE SE DEJÓ DE COBRAR ESTA SEMANA</span>
+                    <div style="font-family:'Outfit', sans-serif; font-size:1.7rem; font-weight:800; color:var(--red); line-height:1.1; margin-top:2px;">
+                        $28,400 USD
+                    </div>
+                </div>
+
+                <!-- Ranking de Bloques -->
+                <div class="card-title-lg" style="font-size:1rem; margin-bottom:10px;">
+                    Ranking de bloques críticos:
+                </div>
+
+                <div id="ranking-bloques-lista">
+                    <!-- Puesto 1 -->
+                    <div class="ranking-item">
+                        <div class="ranking-pos pos-top1">1</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">
+                                <span>Bloque 2 • Freedom (El Río)</span>
+                                <span class="ranking-loss-usd">-$5,801</span>
+                            </div>
+                            <div class="ranking-reason">
+                                Causa: <strong>Velloso y tallos torcidos</strong> (humedad por plástico viejo)
+                            </div>
+                            <div class="ranking-bars-inline">
+                                <span class="tag-descarte">Descarte: 11.2%</span>
+                                <span class="tag-nacional">Nacional: 9.1%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Puesto 2 -->
+                    <div class="ranking-item">
+                        <div class="ranking-pos pos-top1">2</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">
+                                <span>Bloque 1 • Mondial (El Río)</span>
+                                <span class="ranking-loss-usd">-$3,806</span>
+                            </div>
+                            <div class="ranking-reason">
+                                Causa: <strong>Botrytis por condensación nocturna</strong>
+                            </div>
+                            <div class="ranking-bars-inline">
+                                <span class="tag-descarte">Descarte: 11.7%</span>
+                                <span class="tag-nacional">Nacional: 9.7%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Puesto 3 -->
+                    <div class="ranking-item">
+                        <div class="ranking-pos pos-top2">3</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">
+                                <span>Bloque 4 • Freedom (Central)</span>
+                                <span class="ranking-loss-usd">-$3,788</span>
+                            </div>
+                            <div class="ranking-reason">
+                                Causa: <strong>Daño mecánico en malla de soporte</strong>
+                            </div>
+                            <div class="ranking-bars-inline">
+                                <span class="tag-descarte">Descarte: 6.1%</span>
+                                <span class="tag-nacional">Nacional: 5.4%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Puesto 4 -->
+                    <div class="ranking-item">
+                        <div class="ranking-pos">4</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">
+                                <span>Bloque 3 • Pink Floyd (El Río)</span>
+                                <span class="ranking-loss-usd">-$3,446</span>
+                            </div>
+                            <div class="ranking-reason">
+                                Causa: <strong>Botrytis y deformidad de botón</strong>
+                            </div>
+                            <div class="ranking-bars-inline">
+                                <span class="tag-descarte">Descarte: 12.2%</span>
+                                <span class="tag-nacional">Nacional: 9.8%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Puesto 5 -->
+                    <div class="ranking-item">
+                        <div class="ranking-pos">5</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">
+                                <span>Bloque 6 • Vendela (Central)</span>
+                                <span class="ranking-loss-usd">-$2,683</span>
+                            </div>
+                            <div class="ranking-reason">
+                                Causa: <strong>Quemadura ligera por sol de mediodía</strong>
+                            </div>
+                            <div class="ranking-bars-inline">
+                                <span class="tag-descarte">Descarte: 6.5%</span>
+                                <span class="tag-nacional">Nacional: 5.8%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Puesto 12 (El mejor) -->
+                    <div class="ranking-item" style="background:#F0FDF4; border-radius:10px; padding:10px; margin-top:8px;">
+                        <div class="ranking-pos" style="background:#DCFCE7; color:var(--green);">12</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">
+                                <span style="color:var(--green);">Bloque 9 • Explorer (La Loma)</span>
+                                <span style="color:var(--green); font-weight:800;">-$1,496</span>
+                            </div>
+                            <div class="ranking-reason" style="color:#166534;">
+                                <strong>El bloque más sano:</strong> Ventilación cenital automática, descarte de solo 3.8%.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <a href="../" class="back-home-link">← Volver a la portada de Fuyu</a>
+        </section>
+
+        <!-- Botón Inferior Fijo de Conversión a WhatsApp -->
+        <div class="floating-footer">
+            <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20vi%20la%20demo%20de%20Rosas%20del%20Valle%20y%20quiero%20ver%20esto%20con%20los%20datos%20de%20mi%20finca" target="_blank" rel="noopener" class="btn-whatsapp-cta" id="btn-demo-cta">
+                <i class="fa-brands fa-whatsapp"></i> Quiero esto para mi finca
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Script de Cambio de Pestañas -->
+    <script>
+        function switchTab(tabId) {
+            // Desactivar todos los contenidos y botones
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            // Activar pestaña seleccionada
+            const targetContent = document.getElementById(tabId);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+            
+            // Activar botón correspondiente
+            const buttons = document.querySelectorAll('.tab-btn');
+            if (tabId === 'tab-semana') buttons[0].classList.add('active');
+            if (tabId === 'tab-valentin') buttons[1].classList.add('active');
+            if (tabId === 'tab-perdidas') buttons[2].classList.add('active');
+
+            // Scroll suave arriba
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
