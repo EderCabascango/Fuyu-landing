@@ -1,0 +1,13 @@
+{
+  "finca": "Rosas del Valle (ejemplo)",
+  "nota": "Catálogo ficticio para la demostración.",
+  "tallos_por_bonche_permitidos": [20, 25],
+  "variedades": [
+    { "nombre": "Freedom",      "color": "Rojo",          "largos": [40, 50, 60, 70, 80], "precio_min": 0.25, "precio_max": 0.95 },
+    { "nombre": "Explorer",     "color": "Rojo",          "largos": [50, 60, 70, 80],     "precio_min": 0.30, "precio_max": 1.00 },
+    { "nombre": "Vendela",      "color": "Blanco crema",  "largos": [40, 50, 60, 70],     "precio_min": 0.25, "precio_max": 0.85 },
+    { "nombre": "Mondial",      "color": "Blanco",        "largos": [50, 60, 70, 80],     "precio_min": 0.30, "precio_max": 0.95 },
+    { "nombre": "Playa Blanca", "color": "Blanco",        "largos": [40, 50, 60],         "precio_min": 0.22, "precio_max": 0.70 },
+    { "nombre": "Pink Floyd",   "color": "Fucsia",        "largos": [40, 50, 60, 70],     "precio_min": 0.28, "precio_max": 0.90 }
+  ]
+}
