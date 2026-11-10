@@ -7,18 +7,19 @@ const SHEETJS = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_PAGINAS_IMAGEN = 3;
 
+// tipo: cómo se dibuja la miniatura. dificultad: qué tiene de difícil.
 const EJEMPLOS = {
   pedido: [
-    { archivo: "pedido_correo_ingles.txt", formato: "CORREO", titulo: "Correo en inglés", detalle: "Importador de Miami, EE. UU." },
-    { archivo: "pedido_tabla.pdf", formato: "PDF", titulo: "Orden de compra en PDF", detalle: "Importador de Moscú, tabla por variedad" },
-    { archivo: "pedido_excel.xlsx", formato: "EXCEL", titulo: "Pedido en Excel", detalle: "Mayorista de Países Bajos" },
-    { archivo: "pedido_whatsapp.txt", formato: "WHATSAPP", titulo: "WhatsApp desordenado", detalle: "Varios mensajes, con abreviaturas" },
-    { archivo: "pedido_con_errores.txt", formato: "CORREO", titulo: "Pedido con errores", detalle: "Una variedad que no existe y una suma mal hecha", error: true },
+    { archivo: "pedido_correo_ingles.txt", tipo: "correo", titulo: "Correo en inglés", dificultad: "En inglés, con cajas HB y QB" },
+    { archivo: "pedido_whatsapp.txt", tipo: "chat", titulo: "WhatsApp de un cliente", dificultad: "Mensajes sueltos, abreviaturas y una corrección a la mitad" },
+    { archivo: "pedido_tabla.pdf", tipo: "pdf", titulo: "Orden de compra en PDF", dificultad: "Tabla de un importador de Moscú, con totales por línea" },
+    { archivo: "pedido_excel.xlsx", tipo: "excel", titulo: "Pedido en Excel", dificultad: "Datos del cliente arriba, tabla abajo y notas sueltas" },
+    { archivo: "pedido_con_errores.txt", tipo: "correo", titulo: "Pedido con errores", dificultad: "Una variedad que no existe y una suma mal hecha", error: true },
   ],
   factura: [
-    { archivo: "factura_cartonera.pdf", formato: "PDF", titulo: "Factura de cartón", detalle: "Correcta, sin diferencias" },
-    { archivo: "factura_insumos_total_mal.pdf", formato: "PDF", titulo: "Factura de insumos", detalle: "Con el total mal calculado", error: true },
-    { archivo: "factura_frio_escaneada.pdf", formato: "ESCANEO", titulo: "Factura escaneada", detalle: "Servicio técnico, documento en papel" },
+    { archivo: "factura_cartonera.pdf", tipo: "pdf", titulo: "Factura de cartón", dificultad: "Factura limpia: todo debería cuadrar" },
+    { archivo: "factura_insumos_total_mal.pdf", tipo: "pdf", titulo: "Factura de insumos", dificultad: "El total está mal calculado", error: true },
+    { archivo: "factura_frio_escaneada.pdf", tipo: "escaneo", titulo: "Factura escaneada", dificultad: "Papel escaneado, un poco torcido y con firma" },
   ],
 };
 
@@ -70,7 +71,7 @@ const CAMPOS = {
 
 // ---------------- Estado ----------------
 
-const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "" };
+const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "", preparado: null };
 const $ = (s) => document.querySelector(s);
 
 const fmtEntero = (n) => (n === null || n === undefined || isNaN(n) ? "—" : Number(n).toLocaleString("es-EC"));
@@ -88,15 +89,47 @@ function mensaje(texto, tipo = "") {
 async function iniciar() {
   estado.catalogo = await fetch("catalogo.json").then((r) => r.json());
   document.querySelectorAll(".modo").forEach((b) => b.addEventListener("click", () => cambiarModo(b.dataset.modo)));
+
+  // Subir archivo: tocar o arrastrar y soltar
+  const soltar = $("#soltar");
   $("#archivo").addEventListener("change", (e) => {
     const f = e.target.files[0];
-    $("#nombre-archivo").textContent = f ? f.name : "PDF, Excel o foto · máximo 2 MB";
+    if (f) usarArchivoPropio(f);
+    e.target.value = "";
   });
-  $("#btn-leer").addEventListener("click", leerPropio);
+  soltar.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#archivo").click(); }
+  });
+  ["dragenter", "dragover"].forEach((ev) => soltar.addEventListener(ev, (e) => { e.preventDefault(); soltar.classList.add("encima"); }));
+  ["dragleave", "drop"].forEach((ev) => soltar.addEventListener(ev, (e) => { e.preventDefault(); soltar.classList.remove("encima"); }));
+  soltar.addEventListener("drop", (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) usarArchivoPropio(f);
+  });
+  $("#btn-ver-texto").addEventListener("click", usarTextoPegado);
+
+  $("#btn-ir-subir").addEventListener("click", (e) => {
+    e.preventDefault();
+    $("#subir").scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => soltar.focus({ preventScroll: true }), 400);
+  });
+  $("#vp-cerrar").addEventListener("click", cerrarVistaPrevia);
+  $("#btn-leer-doc").addEventListener("click", leerConFuyu);
   $("#btn-aprobar").addEventListener("click", aprobar);
   $("#btn-excel").addEventListener("click", () => descargar("xlsx"));
   $("#btn-csv").addEventListener("click", () => descargar("csv"));
   pintarEjemplos();
+  ponerPaso(1);
+}
+
+function ponerPaso(n) {
+  document.querySelectorAll("#pasos li").forEach((li) => {
+    const p = Number(li.dataset.paso);
+    li.classList.toggle("activo", p === n);
+    li.classList.toggle("hecho", p < n);
+    if (p === n) li.setAttribute("aria-current", "step");
+    else li.removeAttribute("aria-current");
+  });
 }
 
 function cambiarModo(modo) {
@@ -108,12 +141,25 @@ function cambiarModo(modo) {
     b.setAttribute("aria-selected", activo);
   });
   $("#bloque-texto").classList.toggle("oculto", modo === "factura");
-  $("#archivo").value = "";
-  $("#nombre-archivo").textContent = "PDF, Excel o foto · máximo 2 MB";
-  $("#paso-2").classList.add("oculto");
-  $("#paso-3").classList.add("oculto");
+  $("#soltar-formatos").textContent = modo === "factura" ? "PDF o foto de la factura · máximo 2 MB" : "PDF, Excel, foto o texto · máximo 2 MB";
+  cerrarVistaPrevia();
   mensaje("");
   pintarEjemplos();
+}
+
+function miniatura(tipo) {
+  const m = document.createElement("span");
+  m.className = `mini mini-${tipo}`;
+  m.setAttribute("aria-hidden", "true");
+  const html = {
+    correo: `<span class="m-cab"><i></i><i></i></span><i style="width:70%"></i><i style="width:85%"></i><i style="width:55%"></i><i style="width:75%"></i>`,
+    chat: `<span class="m-cab"></span><b></b><b style="width:50%"></b><b class="d"></b><b style="width:70%"></b>`,
+    pdf: `<span class="m-hoja"><i style="width:55%"></i><i style="width:35%"></i><span class="m-tabla"></span><i style="width:40%;margin-left:auto"></i></span>`,
+    excel: `<span class="h"></span><span class="h"></span><span class="h"></span><span class="h"></span>${"<span></span>".repeat(16)}`,
+    escaneo: `<span class="m-hoja"><i style="width:50%"></i><i style="width:70%"></i><i></i><i></i><i style="width:60%"></i><i style="width:35%;margin-left:auto"></i></span>`,
+  };
+  m.innerHTML = html[tipo] || html.correo;
+  return m;
 }
 
 function pintarEjemplos() {
@@ -122,37 +168,44 @@ function pintarEjemplos() {
   for (const ej of EJEMPLOS[estado.modo]) {
     const b = document.createElement("button");
     b.className = "ejemplo";
-    b.innerHTML = `<span class="formato"></span><span class="ejemplo-texto"><strong></strong><span></span></span>`;
-    b.querySelector(".formato").textContent = ej.formato;
-    b.querySelector("strong").textContent = ej.titulo;
-    const det = b.querySelector(".ejemplo-texto span");
-    det.textContent = ej.detalle;
-    if (ej.error) det.classList.add("marca-error");
-    b.addEventListener("click", () => leerEjemplo(ej));
+    b.type = "button";
+    b.dataset.archivo = ej.archivo;
+    const texto = document.createElement("span");
+    texto.className = "ejemplo-texto";
+    const t = document.createElement("strong");
+    t.textContent = ej.titulo;
+    const d = document.createElement("span");
+    d.textContent = ej.dificultad;
+    if (ej.error) d.classList.add("marca-error");
+    texto.append(t, d);
+    b.append(miniatura(ej.tipo), texto);
+    b.addEventListener("click", () => elegirEjemplo(ej));
     cont.appendChild(b);
   }
 }
 
 function bloquear(si) {
-  document.querySelectorAll(".ejemplo, #btn-leer, .modo").forEach((b) => (b.disabled = si));
-  if (si) {
-    // Un documento nuevo reemplaza la revisión anterior
-    $("#paso-2").classList.add("oculto");
-    $("#paso-3").classList.add("oculto");
-  }
+  document.querySelectorAll(".ejemplo, #btn-leer-doc, .modo, #btn-ver-texto").forEach((b) => (b.disabled = si));
 }
 
-// ---------------- Lectura de archivos en el navegador ----------------
+function ocultarRevision() {
+  $("#paso-2").classList.add("oculto");
+  $("#paso-3").classList.add("oculto");
+}
 
-async function leerEjemplo(ej) {
+// ---------------- Elegir y ver el documento ----------------
+
+async function elegirEjemplo(ej) {
   try {
     bloquear(true);
     mensaje("Abriendo el ejemplo…", "cargando");
     const r = await fetch(`ejemplos/${ej.archivo}`);
     if (!r.ok) throw new Error("No se pudo abrir el ejemplo.");
     const blob = await r.blob();
-    const archivo = new File([blob], ej.archivo, { type: blob.type });
-    await procesarArchivo(archivo, `ejemplos/${ej.archivo}`);
+    const preparado = await prepararArchivo(new File([blob], ej.archivo, { type: blob.type }));
+    document.querySelectorAll(".ejemplo").forEach((b) => b.classList.toggle("elegido", b.dataset.archivo === ej.archivo));
+    mostrarVistaPrevia(ej.titulo, preparado);
+    mensaje("");
   } catch (e) {
     mensaje(e.message, "error");
   } finally {
@@ -160,16 +213,14 @@ async function leerEjemplo(ej) {
   }
 }
 
-async function leerPropio() {
-  const archivo = $("#archivo").files[0];
-  const texto = estado.modo === "pedido" ? $("#texto").value.trim() : "";
+async function usarArchivoPropio(archivo) {
   try {
     bloquear(true);
-    if (archivo) await procesarArchivo(archivo, null);
-    else if (texto) {
-      estado.nombreDoc = "texto pegado";
-      await enviar({ texto }, { tipo: "texto", contenido: texto });
-    } else mensaje(estado.modo === "pedido" ? "Pegue un texto o elija un archivo." : "Elija un PDF o una foto de la factura.", "error");
+    mensaje("Abriendo su documento…", "cargando");
+    const preparado = await prepararArchivo(archivo);
+    document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
+    mostrarVistaPrevia(archivo.name, preparado);
+    mensaje("");
   } catch (e) {
     mensaje(e.message, "error");
   } finally {
@@ -177,30 +228,118 @@ async function leerPropio() {
   }
 }
 
-async function procesarArchivo(archivo, enlace) {
+function usarTextoPegado() {
+  const texto = $("#texto").value.trim();
+  if (!texto) return mensaje("Pegue primero el texto del correo o del WhatsApp.", "error");
+  document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
+  mostrarVistaPrevia("Texto pegado", { contenido: { texto }, vista: vistaDeTexto(texto) });
+}
+
+function mostrarVistaPrevia(titulo, preparado) {
+  estado.preparado = preparado;
+  estado.nombreDoc = titulo;
+  ocultarRevision();
+  ponerPaso(1);
+  $("#vp-titulo").textContent = titulo;
+  $("#btn-leer-doc").textContent = estado.modo === "pedido" ? "Leer este pedido con Fuyu" : "Leer esta factura con Fuyu";
+  pintarDocumento(preparado.vista, $("#vp-documento"));
+  const vp = $("#vista-previa");
+  vp.classList.remove("oculto");
+  vp.scrollIntoView({ behavior: "smooth", block: "start" });
+  vp.focus({ preventScroll: true });
+}
+
+function cerrarVistaPrevia() {
+  estado.preparado = null;
+  $("#vista-previa").classList.add("oculto");
+  $("#vp-documento").innerHTML = "";
+  document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
+  ocultarRevision();
+  ponerPaso(1);
+}
+
+async function leerConFuyu() {
+  if (!estado.preparado) return;
+  try {
+    bloquear(true);
+    ponerPaso(2);
+    await enviar(estado.preparado.contenido, estado.preparado.vista);
+    ponerPaso(3);
+  } catch (e) {
+    ponerPaso(1);
+    mensaje(e.message, "error");
+    $("#estado").scrollIntoView({ behavior: "smooth", block: "center" });
+  } finally {
+    bloquear(false);
+  }
+}
+
+// ---------------- Preparar el archivo en el navegador ----------------
+
+// Devuelve { contenido: lo que se envía, vista: cómo se muestra en pantalla }
+async function prepararArchivo(archivo) {
   if (archivo.size > MAX_BYTES) throw new Error("El archivo pesa más de 2 MB. Pruebe con uno más liviano.");
-  estado.nombreDoc = archivo.name;
   const nombre = archivo.name.toLowerCase();
-  mensaje("Leyendo el documento…", "cargando");
 
   if (nombre.endsWith(".pdf")) {
-    const { texto, imagenes } = await leerPDF(archivo);
-    if (imagenes) return enviar({ imagenes }, { tipo: "imagenes", contenido: imagenes, enlace, nota: "Documento escaneado: se lee como imagen." });
-    return enviar({ texto }, { tipo: "texto", contenido: texto, enlace });
+    const lib = await cargarPdfjs();
+    const pdf = await lib.getDocument({ data: await archivo.arrayBuffer() }).promise;
+    const paginas = await dibujarPaginas(pdf);
+    const texto = await textoDelPDF(pdf);
+    if (texto.replace(/\s/g, "").length >= 40) return { contenido: { texto }, vista: { tipo: "pdf", paginas } };
+    const imagenes = await imagenesDelPDF(pdf);
+    return { contenido: { imagenes }, vista: { tipo: "pdf", paginas, escaneo: true } };
   }
   if (/\.(xlsx|xls|csv)$/.test(nombre)) {
-    const texto = await leerExcel(archivo);
-    return enviar({ texto }, { tipo: "texto", contenido: texto, enlace });
+    const XLSX = await import(SHEETJS);
+    const libro = XLSX.read(await archivo.arrayBuffer());
+    const texto = libro.SheetNames.map((n) => `Hoja: ${n}\n${XLSX.utils.sheet_to_csv(libro.Sheets[n], { blankrows: false })}`).join("\n\n");
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, blankrows: false, defval: "", raw: false });
+    return { contenido: { texto }, vista: { tipo: "excel", filas, hoja: libro.SheetNames[0] } };
   }
   if (archivo.type.startsWith("image/")) {
     const imagen = await reducirImagen(await createImageBitmap(archivo));
-    return enviar({ imagenes: [imagen] }, { tipo: "imagenes", contenido: [imagen], enlace });
+    return { contenido: { imagenes: [imagen] }, vista: { tipo: "imagen", urls: [imagen] } };
   }
   if (/\.(txt|eml)$/.test(nombre) || archivo.type.startsWith("text/")) {
     const texto = await archivo.text();
-    return enviar({ texto }, { tipo: "texto", contenido: texto, enlace });
+    return { contenido: { texto }, vista: vistaDeTexto(texto) };
   }
   throw new Error("Ese tipo de archivo no se puede leer. Use PDF, Excel, una foto o texto.");
+}
+
+// Reconoce un chat de WhatsApp exportado o un correo; si no, lo muestra como texto
+function vistaDeTexto(texto) {
+  const lineas = texto.replace(/\r/g, "").split("\n");
+  const reChat = /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),\s*(\d{1,2}:\d{2})(?::\d{2})?\]\s*([^:]+):\s*(.*)$/;
+  const mensajes = [];
+  for (const l of lineas) {
+    const m = l.match(reChat);
+    if (m) mensajes.push({ fecha: m[1], hora: m[2], autor: m[3].trim(), texto: m[4] });
+    else if (mensajes.length && l.trim()) mensajes[mensajes.length - 1].texto += `\n${l}`;
+  }
+  if (mensajes.length >= 2) return { tipo: "chat", mensajes };
+
+  const cab = {};
+  let i = 0;
+  const reCab = /^(From|To|Date|Subject|De|Para|Fecha|Asunto|Cc)\s*:\s*(.*)$/i;
+  while (i < lineas.length && reCab.test(lineas[i])) {
+    const [, k, v] = lineas[i].match(reCab);
+    cab[k.toLowerCase()] = v;
+    i++;
+  }
+  if (Object.keys(cab).length >= 2) {
+    return {
+      tipo: "correo",
+      de: cab.from || cab.de || "",
+      para: cab.to || cab.para || "",
+      fecha: cab.date || cab.fecha || "",
+      asunto: cab.subject || cab.asunto || "(sin asunto)",
+      cuerpo: lineas.slice(i).join("\n").trim(),
+    };
+  }
+  return { tipo: "texto", texto };
 }
 
 let pdfjs = null;
@@ -212,10 +351,25 @@ async function cargarPdfjs() {
   return pdfjs;
 }
 
-// Extrae el texto del PDF respetando filas (útil para tablas). Si casi no hay texto, es un escaneo.
-async function leerPDF(archivo) {
-  const lib = await cargarPdfjs();
-  const pdf = await lib.getDocument({ data: await archivo.arrayBuffer() }).promise;
+// Dibuja las páginas (máximo 3) para verlas en pantalla
+async function dibujarPaginas(pdf) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const paginas = [];
+  for (let p = 1; p <= Math.min(pdf.numPages, MAX_PAGINAS_IMAGEN); p++) {
+    const pagina = await pdf.getPage(p);
+    const base = pagina.getViewport({ scale: 1 });
+    const vista = pagina.getViewport({ scale: (760 * dpr) / base.width });
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(vista.width);
+    lienzo.height = Math.round(vista.height);
+    await pagina.render({ canvasContext: lienzo.getContext("2d"), viewport: vista }).promise;
+    paginas.push(lienzo);
+  }
+  return paginas;
+}
+
+// Extrae el texto del PDF respetando filas (útil para tablas)
+async function textoDelPDF(pdf) {
   const paginas = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const pagina = await pdf.getPage(p);
@@ -241,11 +395,11 @@ async function leerPDF(archivo) {
       });
     paginas.push(lineas.join("\n"));
   }
-  const texto = paginas.join("\n\n--- página siguiente ---\n\n");
-  if (texto.replace(/\s/g, "").length >= 40) return { texto };
+  return paginas.join("\n\n--- página siguiente ---\n\n");
+}
 
-  // Escaneo: se convierten las primeras páginas en imagen
-  mensaje("El documento es escaneado; preparando la imagen…", "cargando");
+// Documento escaneado: las primeras páginas se envían como imagen
+async function imagenesDelPDF(pdf) {
   const imagenes = [];
   for (let p = 1; p <= Math.min(pdf.numPages, MAX_PAGINAS_IMAGEN); p++) {
     const pagina = await pdf.getPage(p);
@@ -258,13 +412,7 @@ async function leerPDF(archivo) {
     await pagina.render({ canvasContext: lienzo.getContext("2d"), viewport: vista }).promise;
     imagenes.push(await reducirImagen(lienzo));
   }
-  return { imagenes };
-}
-
-async function leerExcel(archivo) {
-  const XLSX = await import(SHEETJS);
-  const libro = XLSX.read(await archivo.arrayBuffer());
-  return libro.SheetNames.map((n) => `Hoja: ${n}\n${XLSX.utils.sheet_to_csv(libro.Sheets[n], { blankrows: false })}`).join("\n\n");
+  return imagenes;
 }
 
 // Reduce la imagen a un tamaño razonable para no superar el límite de 2 MB
@@ -285,10 +433,103 @@ async function reducirImagen(fuente, maximo = 1700) {
   return c.toDataURL("image/jpeg", 0.45);
 }
 
+// ---------------- Dibujar el documento como se ve en la vida real ----------------
+
+function nodo(etiqueta, clase, texto) {
+  const e = document.createElement(etiqueta);
+  if (clase) e.className = clase;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+
+function pintarDocumento(vista, cont) {
+  cont.innerHTML = "";
+  if (vista.tipo === "chat") {
+    const autores = [...new Set(vista.mensajes.map((m) => m.autor))];
+    const esFinca = (a) => /rosas del valle|finca/i.test(a);
+    const contacto = autores.find((a) => !esFinca(a)) || autores[0];
+    const chat = nodo("div", "doc-chat");
+    const cab = nodo("div", "doc-chat-cab");
+    cab.append(nodo("span", "doc-chat-avatar", contacto.trim().charAt(0).toUpperCase()), nodo("span", "", contacto));
+    const cuerpo = nodo("div", "doc-chat-cuerpo");
+    if (vista.mensajes[0]?.fecha) cuerpo.append(nodo("span", "doc-chat-dia", vista.mensajes[0].fecha));
+    for (const m of vista.mensajes) {
+      const b = nodo("p", `burbuja ${esFinca(m.autor) ? "finca" : "cliente"}`);
+      b.append(document.createTextNode(m.texto), nodo("span", "hora", m.hora));
+      cuerpo.append(b);
+    }
+    chat.append(cab, cuerpo);
+    cont.append(chat);
+    return;
+  }
+  if (vista.tipo === "correo") {
+    const c = nodo("article", "doc-correo");
+    const cab = nodo("div", "doc-correo-cab");
+    cab.append(nodo("h4", "doc-correo-asunto", vista.asunto));
+    const dl = nodo("dl", "doc-correo-meta");
+    for (const [k, v] of [["De", vista.de], ["Para", vista.para], ["Fecha", vista.fecha]]) {
+      if (!v) continue;
+      dl.append(nodo("dt", "", k), nodo("dd", "", v));
+    }
+    cab.append(dl);
+    c.append(cab, nodo("div", "doc-correo-cuerpo", vista.cuerpo));
+    cont.append(c);
+    return;
+  }
+  if (vista.tipo === "pdf") {
+    const caja = nodo("div", "doc-pdf");
+    for (const original of vista.paginas) {
+      const copia = document.createElement("canvas");
+      copia.width = original.width;
+      copia.height = original.height;
+      copia.getContext("2d").drawImage(original, 0, 0);
+      copia.setAttribute("role", "img");
+      copia.setAttribute("aria-label", "Página del documento");
+      caja.append(copia);
+    }
+    cont.append(caja);
+    return;
+  }
+  if (vista.tipo === "excel") {
+    const caja = nodo("div", "doc-excel");
+    const t = nodo("table");
+    const filas = vista.filas.slice(0, 15);
+    const ncol = Math.max(...filas.map((f) => f.length), 1);
+    const thead = nodo("thead");
+    const trh = nodo("tr");
+    trh.append(nodo("th", "", ""));
+    for (let c = 0; c < ncol; c++) trh.append(nodo("th", "", String.fromCharCode(65 + c)));
+    thead.append(trh);
+    const tbody = nodo("tbody");
+    filas.forEach((f, i) => {
+      const tr = nodo("tr");
+      tr.append(nodo("th", "", String(i + 1)));
+      for (let c = 0; c < ncol; c++) tr.append(nodo("td", "", f[c] ?? ""));
+      tbody.append(tr);
+    });
+    t.append(thead, tbody);
+    caja.append(t, nodo("p", "doc-excel-pie", `Hoja “${vista.hoja}”${vista.filas.length > 15 ? " · primeras 15 filas" : ""}`));
+    cont.append(caja);
+    return;
+  }
+  if (vista.tipo === "imagen") {
+    const caja = nodo("div", "doc-pdf");
+    for (const src of vista.urls) {
+      const img = nodo("img");
+      img.src = src;
+      img.alt = "Foto del documento";
+      caja.append(img);
+    }
+    cont.append(caja);
+    return;
+  }
+  cont.append(nodo("div", "doc-texto", vista.texto));
+}
+
 // ---------------- Envío al servidor ----------------
 
 async function enviar(contenido, vista) {
-  mensaje(contenido.imagenes ? "Leyendo la imagen del documento… (puede tardar unos segundos)" : "Ordenando los datos del documento…", "cargando");
+  mensaje(contenido.imagenes ? "Fuyu está leyendo la imagen del documento… (puede tardar unos segundos)" : "Fuyu está leyendo el documento…", "cargando");
   const cuerpo = JSON.stringify({ modo: estado.modo, ...contenido });
   if (new Blob([cuerpo]).size > MAX_BYTES) throw new Error("El documento es demasiado grande para la demo (máximo 2 MB).");
 
@@ -302,14 +543,17 @@ async function enviar(contenido, vista) {
   const j = await r.json().catch(() => ({ ok: false, error: "Respuesta inesperada del servidor." }));
   if (!j.ok) throw new Error(j.error || "No se pudo leer el documento.");
 
-  const segundos = ((performance.now() - inicio) / 1000).toFixed(1);
+  const segundos = ((performance.now() - inicio) / 1000).toLocaleString("es-EC", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   estado.datos = normalizarDatos(j.datos);
   estado.aprobado = false;
   mostrarOriginal(vista);
   pintarRevision();
-  mensaje(`Listo: documento leído en ${segundos} segundos. Revise los datos abajo.`);
+  mensaje("");
+  $("#tiempo-lectura").textContent = `Fuyu leyó ${estado.modo === "pedido" ? "este pedido" : "esta factura"} en ${segundos} s`;
   $("#paso-2").classList.remove("oculto");
   $("#paso-3").classList.remove("oculto");
+  $("#descargas").classList.add("oculto");
+  $("#btn-aprobar").classList.remove("oculto");
   $("#paso-2").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -333,34 +577,7 @@ function paraValidar() {
 }
 
 function mostrarOriginal(vista) {
-  const cuerpo = $("#original-cuerpo");
-  cuerpo.innerHTML = "";
-  if (vista.nota) {
-    const p = document.createElement("p");
-    p.className = "letra-chica";
-    p.textContent = vista.nota;
-    cuerpo.appendChild(p);
-  }
-  if (vista.tipo === "texto") {
-    const pre = document.createElement("pre");
-    pre.textContent = vista.contenido;
-    cuerpo.appendChild(pre);
-  } else {
-    for (const src of vista.contenido) {
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = "Documento original";
-      cuerpo.appendChild(img);
-    }
-  }
-  if (vista.enlace) {
-    const a = document.createElement("a");
-    a.href = vista.enlace;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = "Abrir el archivo original";
-    cuerpo.appendChild(a);
-  }
+  pintarDocumento(vista, $("#original-cuerpo"));
   $("#original").open = false;
 }
 

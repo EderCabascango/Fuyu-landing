@@ -1,0 +1,110 @@
+/* Tarjeta animada "antes → después" (portada y demo) */
+
+.ad {
+    --ad-tinta: #0a1f44;
+    --ad-texto: #1b2843;
+    --ad-suave: #56627a;
+    --ad-borde: #e1e6ee;
+    --ad-fondo: #f6f7f9;
+    --ad-acento: #ff9100;
+    --ad-rojo: #b42318;
+    --ad-rojo-fondo: #fdecec;
+    --ad-amarillo: #7a5600;
+    --ad-amarillo-fondo: #fff3c4;
+    background: #fff;
+    border: 1px solid var(--ad-borde);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(10, 31, 68, 0.10);
+    padding: 14px;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--ad-texto);
+    width: 100%;
+    min-width: 0;
+}
+
+.ad-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 12px; }
+.ad-pasos { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.ad-pasos li {
+    font-size: 14px; font-weight: 600; color: var(--ad-suave);
+    padding: 4px 10px; border-radius: 999px; background: var(--ad-fondo);
+    transition: background-color .3s, color .3s;
+}
+.ad-pasos li.activo { background: var(--ad-tinta); color: #fff; }
+.ad-etiqueta { font-size: 14px; color: var(--ad-suave); }
+
+/* Los tres momentos ocupan la misma celda: la tarjeta no cambia de alto */
+.ad-escena { display: grid; }
+.ad-m { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility .45s; min-width: 0; }
+.ad[data-momento="1"] .ad-m1,
+.ad[data-momento="2"] .ad-m2,
+.ad[data-momento="3"] .ad-m3 { opacity: 1; visibility: visible; }
+
+/* Momento 1: el pedido como llega */
+.ad-linea { opacity: 0; transform: translateY(8px); transition: opacity .35s ease, transform .35s ease; margin: 0; }
+.ad-linea.ver { opacity: 1; transform: none; }
+
+.ad-chat { border-radius: 10px; overflow: hidden; border: 1px solid var(--ad-borde); }
+.ad-chat-cab { display: flex; align-items: center; gap: 10px; background: #075e54; color: #fff; padding: 10px 12px; font-weight: 600; }
+.ad-chat-avatar { width: 30px; height: 30px; border-radius: 50%; background: #25d366; display: grid; place-items: center; font-size: 14px; }
+.ad-chat-cuerpo { background: #efeae2; padding: 12px; display: grid; gap: 8px; justify-items: start; }
+.ad-burbuja { background: #fff; border-radius: 0 8px 8px 8px; padding: 7px 10px; max-width: 88%; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08); }
+.ad-hora { font-size: 12px; color: #667781; margin-left: 10px; float: right; margin-top: 5px; }
+
+.ad-correo { border: 1px solid var(--ad-borde); border-radius: 10px; overflow: hidden; }
+.ad-correo-cab { background: var(--ad-fondo); padding: 12px 14px; border-bottom: 1px solid var(--ad-borde); }
+.ad-correo-asunto { margin: 0 0 2px; font-weight: 700; color: var(--ad-tinta); font-size: 16px; }
+.ad-correo-de { margin: 0; font-size: 14px; color: var(--ad-suave); }
+.ad-correo-cuerpo { padding: 12px 14px; display: grid; gap: 6px; }
+
+/* Momento 2: Fuyu lo lee */
+.ad-leyendo {
+    margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
+    font-weight: 600; color: var(--ad-tinta);
+    background: #fff4e5; border-radius: 8px; padding: 8px 12px;
+}
+.ad-leyendo::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ad-acento); animation: ad-latido 1s ease-in-out infinite; }
+@keyframes ad-latido { 50% { opacity: .3; transform: scale(.7); } }
+.ad-mini { display: grid; gap: 4px; margin-bottom: 10px; }
+.ad-mini-linea { margin: 0; padding: 4px 10px; border-radius: 6px; border-left: 3px solid transparent; color: var(--ad-suave); transition: background-color .3s, border-color .3s, color .3s; font-size: 14px; }
+.ad-mini-linea.leyendo { background: #fff4e5; border-left-color: var(--ad-acento); color: var(--ad-tinta); }
+.ad-mini-linea.leida { color: var(--ad-texto); }
+
+/* Tabla (momentos 2 y 3) */
+.ad-tabla { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ad-tabla th { text-align: left; font-size: 14px; font-weight: 600; color: var(--ad-suave); padding: 6px 8px; border-bottom: 1px solid var(--ad-borde); }
+.ad-tabla td { padding: 7px 8px; border-bottom: 1px solid #eef1f5; color: var(--ad-tinta); }
+.ad-tabla .ad-num { text-align: right; white-space: nowrap; }
+.ad-fila { transition: opacity .35s ease, transform .35s ease; }
+.ad-tabla-lectura .ad-fila { opacity: 0; transform: translateX(-8px); }
+.ad-tabla-lectura .ad-fila.ver { opacity: 1; transform: none; }
+.ad-fila-error td { background: var(--ad-rojo-fondo); }
+.ad-celda-error { color: var(--ad-rojo) !important; font-weight: 700; }
+.ad-celda-aviso { background: var(--ad-amarillo-fondo) !important; color: var(--ad-amarillo) !important; font-weight: 700; }
+
+/* Momento 3: listo para revisar */
+.ad-resumen { margin: 0 0 10px; font-size: 16px; color: var(--ad-texto); }
+.ad-resumen strong { color: var(--ad-tinta); }
+.ad-problemas { margin-top: 12px; border-radius: 10px; padding: 12px 14px; background: var(--ad-amarillo-fondo); }
+.ad-problemas-error { background: var(--ad-rojo-fondo); }
+.ad-problemas-titulo { margin: 0 0 8px; font-weight: 700; font-size: 16px; color: var(--ad-tinta); }
+.ad-avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ad-aviso { font-size: 15px; font-weight: 600; color: var(--ad-amarillo); padding-left: 22px; position: relative; }
+.ad-aviso::before { content: ""; position: absolute; left: 0; top: 1px; width: 16px; height: 16px; border-radius: 50%; background: currentColor; }
+.ad-aviso-error { color: var(--ad-rojo); }
+.ad-aviso::after { content: "!"; position: absolute; left: 0; top: 1px; width: 16px; height: 16px; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; }
+.ad-enlace { display: inline-block; margin-top: 12px; font-weight: 700; color: var(--ad-tinta); text-decoration: underline; text-decoration-color: var(--ad-acento); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.ad-enlace:hover { text-decoration-color: var(--ad-tinta); }
+
+@media (max-width: 480px) {
+    .ad { padding: 12px; }
+    .ad-pasos { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 4px; }
+    .ad-pasos li { text-align: center; padding: 5px 4px; border-radius: 8px; line-height: 1.2; display: grid; place-items: center; }
+    .ad-tabla td, .ad-tabla th { padding: 6px 5px; }
+    .ad-etiqueta { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ad-m, .ad-linea, .ad-fila, .ad-mini-linea { transition: none; }
+    .ad-leyendo::before { animation: none; }
+}

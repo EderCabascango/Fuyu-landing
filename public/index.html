@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="componentes/antes-despues.css">
     <link rel="stylesheet" href="index.css">
     <script>document.documentElement.classList.add('js');</script>
 </head>
@@ -47,13 +48,7 @@
             </div>
         </div>
 
-        <figure class="captura" data-ui aria-label="Captura de la demo de Fuyu">
-            <p class="captura-etiqueta">Así llega el pedido</p>
-            <img src="assets/demo/pedido-original.jpg" width="1000" height="469" alt="Correo de un importador con un pedido de rosas escrito en inglés, línea por línea">
-            <p class="captura-paso">Fuyu lo ordena y lo revisa</p>
-            <p class="captura-etiqueta">Así queda para revisar y aprobar</p>
-            <img src="assets/demo/pedido-revisado.jpg" width="1100" height="433" alt="El mismo pedido en una tabla editable, con una variedad que no existe y una cantidad mal sumada marcadas en rojo">
-        </figure>
+        <div class="portada-animacion" id="animacion-portada" aria-label="Ejemplo animado: un pedido por correo pasa a una tabla y Fuyu marca dos errores"></div>
     </section>
 
     <figure class="foto-ancha foto-ancha-alta">
@@ -234,5 +229,13 @@
 </footer>
 
 <script src="index.js"></script>
+<script type="module">
+    import { montarAntesDespues, EJEMPLO_CORREO_ERRORES } from "./componentes/antes-despues.js";
+    montarAntesDespues(document.getElementById("animacion-portada"), EJEMPLO_CORREO_ERRORES, {
+        etiqueta: "Ejemplo con datos ficticios",
+        columnas: ["variedad", "cajas", "tallos", "precio"],
+        enlace: { href: "/demo/", texto: "Pruébelo con un pedido de ejemplo →" },
+    });
+</script>
 </body>
 </html>
