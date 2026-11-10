@@ -18,7 +18,7 @@ const ESQUEMA_PEDIDO = objeto({
   cliente: txt,
   numero_pedido: txt,
   fecha_entrega: { ...txt, description: "Formato AAAA-MM-DD" },
-  mercado: { ...txt, description: "País o región de destino, en español" },
+  mercado: { ...txt, description: "Solo el país de destino, en español" },
   lineas: {
     type: "array",
     items: objeto({
@@ -71,7 +71,9 @@ function instrucciones(modo, hoy) {
       "El largo va en centímetros como número (\"60cm\" → 60). " +
       "\"HB\" es half box, \"QB\" quarter box, \"FB\" full box. " +
       "En total_tallos_declarado pon solo el total de tallos que el pedido escribe para esa línea; si no lo escribe, null. " +
-      "El mercado es el país o región de destino, escrito en español."
+      "El cliente es la empresa que compra (por ejemplo \"Bloomfield Wholesale Inc.\"), no la persona que escribe; " +
+      "usa el nombre de la persona solo si no aparece ninguna empresa. " +
+      "El mercado es solo el país de destino, escrito en español (por ejemplo \"Estados Unidos\", \"Países Bajos\", \"Rusia\"), sin la ciudad."
     );
   }
   return (
