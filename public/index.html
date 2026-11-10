@@ -3,402 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Fuyu Soluciones en Datos - Desbloquea el poder de tu empresa y automatiza tu éxito. Consultoría estratégica para tus negocios.">
-    <meta name="keywords" content="Fuyu, datos, automatización, business intelligence, consultoría, Ecuador, floricultura, KPI">
-    <title>Fuyu - Soluciones en Datos y Automatización Empresarial</title>
-    <!-- Google Fonts: Outfit for titles, Inter for body text -->
+    <title>Fuyu · Menos papeleo en la oficina de su finca</title>
+    <meta name="description" content="Consultoría de datos e IA para florícolas de Cayambe, Tabacundo y Cotopaxi. Su oficina deja de digitar pedidos y facturas, sobre el sistema que ya tiene.">
+    <meta property="og:title" content="Fuyu · Menos papeleo. Más control en su finca.">
+    <meta property="og:description" content="Consultoría de datos e IA para florícolas de Cayambe, Tabacundo y Cotopaxi. Trabajamos sobre el sistema que usted ya tiene.">
+    <meta property="og:image" content="/assets/fotos/rosas-cotopaxi.jpg">
+    <link rel="icon" href="assets/fuyudatoslogo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome for professional icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
+    <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
-    <!-- Module 1: Professional Header & Navigation -->
-    <header class="main-header" id="header">
-        <div class="header-container">
-            <a href="#inicio" class="logo-wrapper" id="logo-link">
-                <img src="assets/fuyudatoslogo.png" alt="Fuyu Logo" class="header-logo" id="fuyu-main-logo">
-                <div class="logo-text">
-                    <span class="logo-brand">Fuyu</span>
-                    <span class="logo-slogan">Soluciones en datos</span>
-                </div>
-            </a>
-            
-            <nav class="nav-menu" id="navigation-menu">
-                <a href="#inicio" class="nav-link active">Inicio</a>
-                <a href="#servicios" class="nav-link">Floricultura</a>
-                <a href="#como-funciona" class="nav-link">Cómo Funciona</a>
-                <a href="#beneficios" class="nav-link">Beneficios</a>
-                <a href="#nosotros" class="nav-link">Nosotros</a>
-                <a href="#contacto" class="nav-link">Contacto</a>
-            </nav>
+<header class="barra" id="barra">
+    <a href="#inicio" class="marca" aria-label="Fuyu, inicio">
+        <img src="assets/fuyudatoslogo.png" alt="" width="34" height="34">
+        <span>Fuyu</span>
+    </a>
+    <nav class="barra-enlaces" aria-label="Secciones">
+        <a href="#servicios">Servicios</a>
+        <a href="#como-trabajamos">Cómo trabajamos</a>
+        <a href="/demo/">Demo</a>
+    </nav>
+    <a class="boton boton-acento boton-chico" href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20quiero%20agendar%20la%20conversaci%C3%B3n%20de%2020%20minutos%20para%20mi%20finca." target="_blank" rel="noopener">Agendar 20 min</a>
+</header>
 
-            <div class="header-actions">
-                <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20gustar%C3%ADa%20agendar%20una%20consultor%C3%ADa%20gratuita" target="_blank" rel="noopener" class="btn btn-primary" id="btn-schedule-header">Agendar Consulta</a>
-                <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Abrir menú">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-            </div>
-        </div>
-    </header>
+<main>
 
-    <!-- Module 2: Hero Section (The Hook) -->
-    <section class="hero-section" id="inicio">
-        <!-- Interactive network background container -->
-        <canvas id="hero-network-canvas" class="hero-canvas"></canvas>
-        
-        <div class="hero-container container">
-            <div class="hero-content">
-                <h1 class="hero-title" id="hero-headline">
-                    Sepa cuánta flor va a tener para San Valentín y si le alcanza para sus pedidos
-                </h1>
-                <p class="hero-subtitle" id="hero-subheadline">
-                    Ayudamos a las florícolas de Cayambe y Tabacundo a ver su producción, sus ventas y sus pérdidas en el celular, sin pelear con 15 Excel.
-                </p>
-                <div class="hero-cta-wrapper">
-                    <a href="demo/" class="btn btn-hero btn-large" id="btn-hero-demo">Ver ejemplo</a>
-                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20informaci%C3%B3n%20para%20mi%20finca" target="_blank" rel="noopener" class="btn btn-whatsapp-outline" id="btn-hero-whatsapp">
-                        <i class="fa-brands fa-whatsapp"></i> Escríbanos por WhatsApp
-                    </a>
-                </div>
+    <!-- Primera pantalla -->
+    <section class="portada" id="inicio">
+        <h1 class="titular">
+            <span class="titular-claro">Menos papeleo.</span>
+            <span class="titular-oscuro">Más control en su finca.</span>
+        </h1>
+        <div class="portada-pie">
+            <p class="portada-texto">Consultoría de datos e IA para florícolas de Cayambe, Tabacundo y Cotopaxi. Trabajamos sobre el sistema que usted ya tiene.</p>
+            <div class="portada-acciones">
+                <a class="boton boton-acento" href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20quiero%20agendar%20la%20conversaci%C3%B3n%20de%2020%20minutos%20para%20mi%20finca." target="_blank" rel="noopener">Agendar 20 minutos</a>
+                <a class="boton boton-borde" href="/demo/">Probar la demo</a>
             </div>
         </div>
     </section>
 
-    <!-- Module 3: Problem/Solution ("¿Por qué Fuyu?") -->
-    <section class="problem-solution-section section-padding" id="por-que-fuyu">
-        <div class="container">
-            <h2 class="section-title text-center" id="prob-sol-title">¿Cansado de los <span class="text-orange">procesos manuales</span> y de <span class="text-magenta">perder clientes</span>?</h2>
-            
-            <div class="grid grid-2" id="prob-sol-grid">
-                <!-- Left Card: Pain Points -->
-                <div class="card card-pain" id="card-pain-points">
-                    <div class="card-icon-wrapper">
-                        <i class="fa-solid fa-gears card-icon text-grey"></i>
-                    </div>
-                    <h3 class="card-title">Sin Fuyu</h3>
-                    <ul class="benefit-list pain-list">
-                        <li>
-                            <i class="fa-solid fa-circle-xmark icon-bullet text-grey"></i>
-                            <span><strong>Múltiples Procesos Manuales:</strong> Pérdida de tiempo valioso en tareas repetitivas y propensas a errores.</span>
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-circle-xmark icon-bullet text-grey"></i>
-                            <span><strong>Pérdida de Ventas Fuera de Horario:</strong> Fuga de clientes potenciales por no tener disponibilidad 24/7 para responder dudas, enviar catálogos o agendar de inmediato.</span>
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-circle-xmark icon-bullet text-grey"></i>
-                            <span><strong>Decisiones Basadas en Intuición:</strong> Dificultad para medir el retorno de tus estrategias operativas.</span>
-                        </li>
-                    </ul>
-                    <p class="card-footer-text">Tu negocio puede dar más.</p>
-                </div>
+    <figure class="foto-ancha foto-ancha-alta">
+        <img src="assets/fotos/rosas-cotopaxi.jpg" width="1800" height="1031" alt="Rosas rojas en botón dentro de un invernadero de la provincia de Cotopaxi" fetchpriority="high">
+        <figcaption>Invernadero de rosas en Cotopaxi.</figcaption>
+    </figure>
 
-                <!-- Right Card: Fuyu Solution -->
-                <div class="card card-solution" id="card-fuyu-solution">
-                    <div class="card-icon-wrapper">
-                        <i class="fa-solid fa-brain card-icon text-orange"></i>
-                    </div>
-                    <h3 class="card-title">La Ventaja Fuyu</h3>
-                    <ul class="benefit-list solution-list">
-                        <li>
-                            <i class="fa-solid fa-circle-check icon-bullet text-orange"></i>
-                            <span><strong>Automatización Inteligente:</strong> Liberación de tiempo operativo mediante flujos de trabajo autónomos y eficaces.</span>
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-circle-check icon-bullet text-orange"></i>
-                            <span><strong>Asistentes Inteligentes 24/7:</strong> Chatbots autónomos que atienden, muestran tu catálogo y gestionan clientes a cualquier hora, sin intervención manual.</span>
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-circle-check icon-bullet text-orange"></i>
-                            <span><strong>Decisiones Basadas en Evidencia:</strong> Insights y datos precisos aplicados a la realidad de tu empresa.</span>
-                        </li>
-                    </ul>
-                    <p class="card-footer-text text-orange">Nuestra experiencia, tu ventaja.</p>
-                </div>
+    <!-- Problemas -->
+    <section class="seccion problemas" id="problemas" aria-labelledby="problemas-titulo">
+        <h2 id="problemas-titulo" class="h2 revelar">Lo que hoy se digita a mano</h2>
+        <p class="problemas-intro revelar">En la oficina de una exportadora o de una consolidadora, las mismas cifras se escriben dos y tres veces. Ahí se va el día y ahí aparecen los errores.</p>
+        <ul class="problemas-lista">
+            <li class="revelar"><span class="p-que">Pedidos que se vuelven a escribir en el sistema</span><span class="p-donde">Llegan por correo, WhatsApp, PDF o Excel</span></li>
+            <li class="revelar"><span class="p-que">Facturas de proveedores pasadas a mano</span><span class="p-donde">Insumos, cartón, transporte</span></li>
+            <li class="revelar"><span class="p-que">Recepciones y liquidaciones en Excel que no cuadran</span><span class="p-donde">Consolidadoras y exportadoras</span></li>
+            <li class="revelar"><span class="p-que">Errores de variedad, largo o cantidad que se ven tarde</span><span class="p-donde">Cuando la caja ya salió</span></li>
+            <li class="revelar"><span class="p-que">Costos y cartera que se arman a fin de mes</span><span class="p-donde">Con días de retraso</span></li>
+        </ul>
+    </section>
+
+    <!-- Servicios -->
+    <section class="servicios" id="servicios" aria-labelledby="servicios-titulo">
+        <div class="seccion servicios-cabecera">
+            <h2 id="servicios-titulo" class="h2 revelar">Tres servicios, un proceso a la vez</h2>
+            <p class="revelar">Empezamos por lo que más tiempo le quita a su oficina. Nada se reemplaza: todo termina en el sistema que ya usa.</p>
+        </div>
+
+        <article class="campo campo-a">
+            <p class="campo-texto revelar">Vamos a la finca, vemos cómo llegan y cómo se cargan sus pedidos y documentos, y le entregamos por escrito qué conviene automatizar primero y qué no vale la pena.</p>
+            <figure class="campo-foto revelar">
+                <img src="assets/fotos/rosas-invernadero.jpg" width="1400" height="1050" alt="Rosas rojas con malla protectora en un invernadero de Imbabura" loading="lazy">
+            </figure>
+            <h3 class="campo-frase revelar">Diagnóstico de oficina</h3>
+        </article>
+
+        <article class="campo campo-b">
+            <p class="campo-texto revelar">Los pedidos de sus clientes, lleguen como lleguen, se leen solos, se revisan contra su catálogo de variedades y largos, y quedan listos para cargar en Komet, Unosof, AS2 o su Excel.</p>
+            <h3 class="campo-frase revelar">Pedidos sin digitar</h3>
+        </article>
+
+        <article class="campo campo-a">
+            <p class="campo-texto revelar">Facturas de proveedores, recepciones y liquidaciones: se leen, se revisan RUC, sumas e IVA, y lo que no cuadra queda marcado antes de pagar o de cerrar la liquidación.</p>
+            <h3 class="campo-frase revelar">Documentos sin digitar</h3>
+        </article>
+
+        <div class="seccion servicios-extra revelar">
+            <h3 class="h3">También hacemos</h3>
+            <p>Análisis de costos por variedad y bloque, y control de cartera por cliente, con los datos que ya tiene en sus sistemas y en sus Excel.</p>
+        </div>
+    </section>
+
+    <!-- Demo -->
+    <section class="seccion demo" id="demo" aria-labelledby="demo-titulo">
+        <div class="demo-cabecera">
+            <h2 id="demo-titulo" class="h2 revelar">Pruébelo con un pedido</h2>
+            <p class="revelar">En la demo, suba un pedido de ejemplo: un correo en inglés, un WhatsApp desordenado o un Excel. Fuyu lo lee, lo revisa contra el catálogo y le deja una tabla para corregir y aprobar.</p>
+        </div>
+
+        <div class="comparacion" aria-label="Tiempo por pedido, ejemplo ilustrativo">
+            <figure class="especimen">
+                <div class="especimen-caja"><p class="especimen-cifra" aria-hidden="true">8</p></div>
+                <figcaption class="especimen-nombre">Minutos por pedido, a mano</figcaption>
+            </figure>
+            <figure class="especimen especimen-fuyu">
+                <div class="especimen-caja"><p class="especimen-cifra" aria-hidden="true">1</p></div>
+                <figcaption class="especimen-nombre">Minuto con Fuyu, más su revisión</figcaption>
+            </figure>
+        </div>
+        <p class="letra-chica">Tiempos de ejemplo, solo ilustrativos: no son una medición en una finca.</p>
+
+        <div class="muestra revelar" data-ui id="muestra">
+            <div class="muestra-cab">
+                <span>Pedido SF-2290 · Sunrise Floral, Canadá</span>
+                <span class="muestra-estado" id="muestra-estado">1 punto en rojo</span>
+            </div>
+            <div class="muestra-fila" id="muestra-fila">
+                <div class="muestra-celda muestra-variedad"><small>Variedad</small><strong id="muestra-variedad">Pink Moonlight</strong></div>
+                <div class="muestra-celda"><small>Largo</small><strong>50 cm</strong></div>
+                <div class="muestra-celda"><small>Cajas</small><strong>4 QB</strong></div>
+                <div class="muestra-celda"><small>Tallos</small><strong>500</strong></div>
+            </div>
+            <p class="muestra-alerta" id="muestra-alerta">“Pink Moonlight” no existe en el catálogo de la finca.</p>
+            <div class="muestra-acciones">
+                <button class="boton boton-borde boton-chico" id="muestra-corregir" type="button">Corregir a Pink Floyd</button>
+                <a class="boton boton-acento boton-chico" href="/demo/">Probar la demo completa</a>
             </div>
         </div>
     </section>
 
-    <!-- Module 4: Services Overview (Modular & Specific) -->
-    <section class="services-section section-padding" id="servicios">
-        <div class="container">
-            <h2 class="section-title text-center" id="services-title">Soluciones de Datos para Floricultura</h2>
-            
-            <div class="grid grid-3" id="services-grid">
-                <!-- Service 1: Tablero Producción vs. Ventas -->
-                <div class="card service-card">
-                    <div class="service-icon-wrapper">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                    </div>
-                    <h3 class="service-card-title">Tablero Producción vs. Ventas</h3>
-                    <p class="service-description">
-                        Control diario del cruce entre tallos proyectados y pedidos comprometidos (fijos y venta abierta). Evita sobreventas, faltantes y remates forzados de última hora.
-                    </p>
-                    <span class="service-tag">Especializado: Florícolas y Exportación</span>
-                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20interesa%20el%20Tablero%20Produccion%20vs%20Ventas%20para%20floricolas" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
-                </div>
-
-                <!-- Service 2: Proyección de Cosecha por Variedad -->
-                <div class="card service-card">
-                    <div class="service-icon-wrapper">
-                        <i class="fa-solid fa-arrow-trend-up"></i>
-                    </div>
-                    <h3 class="service-card-title">Proyección de Cosecha por Variedad</h3>
-                    <p class="service-description">
-                        Anticipa las curvas de corte para picos de alta demanda (San Valentín y Día de la Madre) por bloque y variedad, optimizando cuartos fríos y logística.
-                    </p>
-                    <span class="service-tag">Especializado: Temporada San Valentín</span>
-                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20conocer%20la%20Proyeccion%20de%20Cosecha%20por%20variedad" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
-                </div>
-
-                <!-- Service 3: Asistente de Finca por WhatsApp -->
-                <div class="card service-card">
-                    <div class="service-icon-wrapper">
-                        <i class="fa-brands fa-whatsapp"></i>
-                    </div>
-                    <h3 class="service-card-title">Asistente de Finca por WhatsApp</h3>
-                    <p class="service-description">
-                        Consultas operativas internas para el equipo de finca directamente por WhatsApp (ej. "¿cuántas cajas de Freedom 60 cm tenemos?") y alertas de avance de corte.
-                    </p>
-                    <span class="service-tag">Operaciones y Supervisores</span>
-                    <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20interesa%20el%20Asistente%20de%20Finca%20por%20WhatsApp" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
-                </div>
-            </div>
-
-            <!-- Secondary Services Section -->
-            <div class="secondary-services-wrapper">
-                <h3 class="secondary-services-title">Otras Soluciones para Empresas</h3>
-                <p class="secondary-services-subtitle">Herramientas de datos y automatización para optimizar áreas administrativas y de soporte.</p>
-                <div class="grid grid-3">
-                    <div class="card card-compact">
-                        <div class="service-icon-wrapper">
-                            <i class="fa-solid fa-file-invoice-dollar"></i>
-                        </div>
-                        <h4 class="service-card-title">Procesamiento de Facturas e IA</h4>
-                        <p class="service-description">
-                            Extracción inteligente de información clave desde PDFs y facturas físicas para organizarla automáticamente en tus sistemas.
-                        </p>
-                        <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20interesa%20la%20lectura%20automatica%20de%20facturas%20y%20PDFs" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
-                    </div>
-
-                    <div class="card card-compact">
-                        <div class="service-icon-wrapper">
-                            <i class="fa-solid fa-money-bill-trend-up"></i>
-                        </div>
-                        <h4 class="service-card-title">Control de Cartera y Cobros</h4>
-                        <p class="service-description">
-                            Automatización de recordatorios oportunos de pago, seguimiento de cartera vencida y avisos de cobro por mensajería.
-                        </p>
-                        <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20necesito%20el%20Control%20de%20Morosidad%20y%20cobros%20automaticos" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
-                    </div>
-
-                    <div class="card card-compact">
-                        <div class="service-icon-wrapper">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <h4 class="service-card-title">Bases de datos seguras y respaldadas</h4>
-                        <p class="service-description">
-                            Monitoreo de seguridad, respaldo ordenado y protección de bases de datos para garantizar la confidencialidad de tu información.
-                        </p>
-                        <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20proteger%20mis%20bases%20de%20datos%20y%20cumplir%20la%20ley" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Saber Más</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Cómo trabajamos -->
+    <section class="seccion como" id="como-trabajamos" aria-labelledby="como-titulo">
+        <h2 id="como-titulo" class="h2 revelar">Cómo trabajamos</h2>
+        <ol class="barra-etapas" data-ui>
+            <li class="etapa etapa-1 revelar">
+                <div class="etapa-bloque"><span>20 minutos</span></div>
+                <h3>Conversación de 20 min sin costo</h3>
+                <p>Nos cuenta cómo trabaja su oficina y qué documentos le quitan más tiempo.</p>
+            </li>
+            <li class="etapa etapa-2 revelar">
+                <div class="etapa-bloque"><span>En su finca</span></div>
+                <h3>Diagnóstico</h3>
+                <p>Vemos sus pedidos, facturas y liquidaciones reales y le decimos por escrito por dónde empezar.</p>
+            </li>
+            <li class="etapa etapa-3 revelar">
+                <div class="etapa-bloque"><span>Un piloto</span></div>
+                <h3>Un proceso a la vez</h3>
+                <p>Arrancamos con uno solo, por ejemplo los pedidos. Su equipo lo usa y lo aprueba antes de seguir.</p>
+            </li>
+            <li class="etapa etapa-4 revelar">
+                <div class="etapa-bloque"><span>Mes a mes</span></div>
+                <h3>Acompañamiento mes a mes</h3>
+                <p>Ajustes, formatos nuevos de clientes y soporte, sin contratos largos.</p>
+            </li>
+        </ol>
     </section>
 
-    <!-- Module 7: Simple How It Works -->
-    <section class="how-it-works-section section-padding" id="como-funciona">
-        <div class="container">
-            <h2 class="section-title text-center" id="how-title">Tu Camino Hacia la Optimización</h2>
-            
-            <div class="timeline" id="process-timeline">
-                <div class="timeline-line"></div>
-                
-                <div class="timeline-step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Consultoría Gratuita</h3>
-                        <p>Analizamos tus flujos actuales de datos y cuellos de botella iniciales sin ningún compromiso.</p>
-                    </div>
-                </div>
-
-                <div class="timeline-step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>Auditoría y Diagnóstico</h3>
-                        <p>Diseñamos un mapa detallado del estado de tu infraestructura tecnológica y de tus procesos clave.</p>
-                    </div>
-                </div>
-
-                <div class="timeline-step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>Desarrollo de Soluciones</h3>
-                        <p>Construimos tus dashboards, flujos automatizados de n8n e integraciones personalizadas.</p>
-                    </div>
-                </div>
-
-                <div class="timeline-step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h3>Implementación y Entrenamiento</h3>
-                        <p>Desplegamos las herramientas y capacitamos a tu equipo para asegurar una transición fluida.</p>
-                    </div>
-                </div>
-
-                <div class="timeline-step">
-                    <div class="step-number">5</div>
-                    <div class="step-content">
-                        <h3>Soporte Continuo</h3>
-                        <p>Monitoreamos el rendimiento, resolvemos incidentes y escalamos tus flujos conforme creces.</p>
-                    </div>
-                </div>
-            </div>
+    <!-- Por qué Fuyu -->
+    <section class="seccion porque" id="por-que-fuyu" aria-labelledby="porque-titulo">
+        <div class="porque-texto">
+            <h2 id="porque-titulo" class="h2 revelar">Por qué Fuyu</h2>
+            <p class="revelar"><strong>Fuyu</strong> está <mark class="m-a">en Cayambe</mark> y trabaja con florícolas de Cayambe, Tabacundo y Cotopaxi: <mark class="m-b">vamos a la finca</mark> y conversamos con quien hace el trabajo. <mark class="m-a">No reemplazamos su sistema</mark>: todo termina en Komet, Unosof, AS2 o el Excel que ya usa. <mark class="m-b">Una persona revisa y aprueba</mark> cada pedido o documento antes de cargar nada. Y antes de ver un solo papel suyo, <mark class="m-a">firmamos confidencialidad por escrito</mark>.</p>
+            <p class="revelar"><a class="enlace-fuerte" href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20quiero%20agendar%20la%20conversaci%C3%B3n%20de%2020%20minutos%20para%20mi%20finca." target="_blank" rel="noopener">Conversemos 20 minutos.</a></p>
         </div>
+        <figure class="porque-foto revelar">
+            <img src="assets/fotos/volcan-cayambe.jpg" width="1200" height="900" alt="El volcán Cayambe nevado visto desde el parque La Remonta, con invernaderos al pie" loading="lazy">
+            <figcaption>El volcán Cayambe desde el parque La Remonta.</figcaption>
+        </figure>
     </section>
 
-    <!-- Module 6: Tangible Benefits -->
-    <section class="benefits-section section-padding" id="beneficios">
-        <div class="container">
-            <h2 class="section-title text-center" id="benefits-title">¿Qué Ganas al Elegir Fuyu?</h2>
-            
-            <div class="benefits-layout">
-                <div class="benefits-grid" id="benefits-checklist">
-                    <div class="benefit-item">
-                        <div class="benefit-icon">
-                            <i class="fa-solid fa-clock"></i>
-                        </div>
-                        <div class="benefit-text">
-                            <h3>Mayor Eficiencia Operativa</h3>
-                            <p>Optimización y agilidad en el procesamiento de órdenes, inventario y facturación sin cargas manuales repetitivas.</p>
-                        </div>
-                    </div>
+    <figure class="foto-ancha">
+        <img src="assets/fotos/valle-cayambe-satelite.jpg" width="1800" height="788" alt="Imagen satelital del valle de Cayambe: las manchas claras son invernaderos de flores" loading="lazy">
+        <figcaption>El valle de Cayambe desde el espacio. Las manchas claras al centro son invernaderos de flores.</figcaption>
+    </figure>
 
-                    <div class="benefit-item">
-                        <div class="benefit-icon">
-                            <i class="fa-solid fa-arrow-trend-down"></i>
-                        </div>
-                        <div class="benefit-text">
-                            <h3>Reducción de Costos Operativos</h3>
-                            <p>Menos desperdicio administrativo y reasignación de tus recursos clave a tareas de mayor valor estratégico.</p>
-                        </div>
-                    </div>
+    <!-- Llamado final -->
+    <a class="llamado" href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20quiero%20agendar%20la%20conversaci%C3%B3n%20de%2020%20minutos%20para%20mi%20finca." target="_blank" rel="noopener" aria-label="Agendar 20 minutos por WhatsApp">
+        <span class="llamado-texto">Una conversación de 20 minutos, sin costo, por WhatsApp o en su finca.</span>
+        <svg class="llamado-flecha" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 34 34 14M18 14h16v16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>
+        <span class="llamado-palabra" aria-hidden="true">Agendar</span>
+    </a>
+</main>
 
-                    <div class="benefit-item">
-                        <div class="benefit-icon">
-                            <i class="fa-solid fa-bullseye"></i>
-                        </div>
-                        <div class="benefit-text">
-                            <h3>Mejora en la Toma de Decisiones</h3>
-                            <p>Respaldamos tu experiencia gerencial con datos precisos históricos y modelos predictivos claros.</p>
-                        </div>
-                    </div>
-
-                    <div class="benefit-item">
-                        <div class="benefit-icon">
-                            <i class="fa-solid fa-magnifying-glass-chart"></i>
-                        </div>
-                        <div class="benefit-text">
-                            <h3>Acceso a Insights de Mercado Exclusivos</h3>
-                            <p>Visión global de negocio adaptada a la dinámica competitiva y normativa de tu mercado.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<footer class="pie" id="contacto">
+    <div class="pie-arriba">
+        <div class="pie-invitacion">
+            <h2 class="pie-titulo">Hablemos de su oficina</h2>
+            <a class="boton boton-acento" href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20quiero%20agendar%20la%20conversaci%C3%B3n%20de%2020%20minutos%20para%20mi%20finca." target="_blank" rel="noopener">Agendar 20 minutos</a>
         </div>
-    </section>
+        <ul class="pie-contacto">
+            <li><a href="https://wa.me/593939008880" target="_blank" rel="noopener">WhatsApp +593 939008880</a></li>
+            <li><a href="mailto:iafuyutech@gmail.com">iafuyutech@gmail.com</a></li>
+            <li>Cayambe, Ecuador</li>
+            <li><a href="/demo/">Probar la demo</a></li>
+        </ul>
+    </div>
+    <div class="pie-legal">
+        <p>© 2026 Fuyu · Consultoría de datos e IA para florícolas.</p>
+        <p class="creditos">Fotos de Wikimedia Commons:
+            <a href="https://commons.wikimedia.org/wiki/File:05_vrtnice_(16).JPG" target="_blank" rel="noopener">Ljuba brank</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0" target="_blank" rel="noopener">CC BY-SA 3.0</a>),
+            <a href="https://commons.wikimedia.org/wiki/File:Rose_plantation_ecuador.jpg" target="_blank" rel="noopener">Myskoxen</a> (CC0),
+            <a href="https://commons.wikimedia.org/wiki/File:Cayambe_Volcano_seen_from_Parque_La_Remonta.jpg" target="_blank" rel="noopener">Ymblanter</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener">CC BY-SA 4.0</a>),
+            <a href="https://commons.wikimedia.org/wiki/File:Greenhouses_of_Cayambe_Valley.jpg" target="_blank" rel="noopener">NASA Earth Observatory / Joshua Stevens</a> (dominio público). Recortadas.</p>
+    </div>
+    <p class="pie-nombre" aria-hidden="true">Fuyu</p>
+</footer>
 
-
-    <!-- Module 8: The Trust Guarantee -->
-    <section class="guarantee-section section-padding" id="nosotros">
-        <div class="container">
-            <div class="guarantee-container" id="trust-guarantee-block">
-                <div class="guarantee-header text-center">
-                    <span class="guarantee-tag">GARANTÍA FUYU</span>
-                    <h2 class="guarantee-title">Fuyu: Tu Socio Tecnológico de Confianza</h2>
-                </div>
-                <p class="guarantee-description text-center">
-                    Consultores locales con visión global. Creemos en la automatización ética, la soberanía de datos y el análisis transparente. No instalamos cajas negras; transferimos autonomía tecnológica a tu empresa.
-                </p>
-                <div class="guarantee-badges">
-                    <div class="badge-item">
-                        <i class="fa-solid fa-shield-halved badge-icon"></i>
-                        <span>Soberanía de Datos</span>
-                    </div>
-                    <div class="badge-item">
-                        <i class="fa-solid fa-location-dot badge-icon"></i>
-                        <span>Presencia y Soporte Local</span>
-                    </div>
-                    <div class="badge-item">
-                        <i class="fa-solid fa-handshake badge-icon"></i>
-                        <span>Compromiso de Transparencia</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Module 9: Footer & Global CTA -->
-    <section class="global-cta-section" id="contacto">
-        <div class="container text-center">
-            <h2 class="cta-title">¿Listo para Optimizar tu Negocio?</h2>
-            <p class="cta-subtitle">Da el primer paso hacia una gestión inteligente basada en evidencias con tu auditoría inicial gratuita.</p>
-            <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20me%20gustar%C3%ADa%20agendar%20una%20consultor%C3%ADa%20gratuita%20de%20negocios" target="_blank" rel="noopener" class="btn btn-hero btn-large btn-cta-pulse" id="btn-final-cta">
-                <i class="fa-brands fa-whatsapp btn-whatsapp-icon"></i> Agendar Asesoría Gratuita
-            </a>
-        </div>
-    </section>
-
-    <footer class="main-footer" id="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-brand-column">
-                    <div class="footer-logo-wrapper">
-                        <img src="assets/fuyu_logo_dark.png" alt="Fuyu Logo Blanco" class="footer-logo" id="fuyu-footer-logo">
-                        <span class="footer-brand-name">Fuyu</span>
-                    </div>
-                    <p class="footer-brand-slogan">Soluciones en datos y automatización empresarial.</p>
-                </div>
-                
-                <div class="footer-links-column">
-                    <h4>Enlaces Rápidos</h4>
-                    <ul class="footer-links-list">
-                        <li><a href="#inicio">Inicio</a></li>
-                        <li><a href="#servicios">Floricultura</a></li>
-                        <li><a href="#como-funciona">Cómo Funciona</a></li>
-                        <li><a href="#beneficios">Beneficios</a></li>
-                        <li><a href="#nosotros">Nosotros</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-contact-column">
-                    <h4>Contacto</h4>
-                    <ul class="footer-contact-list">
-                        <li><i class="fa-solid fa-envelope"></i> iafuyutech@gmail.com</li>
-                        <li><i class="fa-solid fa-phone"></i> +593 939008880</li>
-                        <li><i class="fa-solid fa-location-dot"></i> Cayambe, Ecuador</li>
-                    </ul>
-                </div>
-
-                <div class="footer-social-column">
-                    <h4>Canal Directo</h4>
-                    <div class="social-icons">
-                        <a href="https://wa.me/593939008880?text=Hola%20Fuyu,%20quiero%20informaci%C3%B3n%20para%20mi%20finca" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="footer-bottom text-center">
-                <p>&copy; 2026 Fuyu. Todos los derechos reservados. Consultoría Estratégica en Datos.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="index.js"></script>
+<script src="index.js"></script>
 </body>
 </html>
