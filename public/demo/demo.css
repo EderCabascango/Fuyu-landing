@@ -41,7 +41,7 @@ h1, h2, h3 { color: var(--tinta); line-height: 1.25; margin: 0; }
 .volver { color: var(--suave); text-decoration: none; font-size: 14px; }
 .volver:hover { color: var(--tinta); }
 
-.contenedor { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+.contenedor { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
 
 /* Encabezado de la demo */
 .demo-hero {
@@ -304,3 +304,121 @@ h1, h2, h3 { color: var(--tinta); line-height: 1.25; margin: 0; }
     .demo-hero { grid-template-columns: 1fr 1.05fr; gap: 48px; padding: 40px 24px 32px; }
     .demo-hero h1 { font-size: 44px; }
 }
+
+/* ---------- Paso 2: leyendo ---------- */
+.etapas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.etapas li { display: flex; align-items: center; gap: 12px; font-size: 16px; color: var(--suave); }
+.etapas li::before {
+    content: ""; flex: none; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #c8cfdb; box-sizing: border-box;
+}
+.etapas li.activa { color: var(--tinta); font-weight: 600; }
+.etapas li.activa::before { border-color: var(--borde); border-top-color: var(--tinta); animation: giro .8s linear infinite; }
+.etapas li.hecha { color: var(--verde); font-weight: 600; }
+.etapas li.hecha::before { content: "✓"; border: 0; background: var(--verde); color: #fff; display: grid; place-items: center; font-size: 13px; }
+.etapas li.fallo { color: var(--rojo); }
+.etapas li.fallo::before { content: "!"; border: 0; background: var(--rojo); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+.reloj { margin: 16px 0 0; font-size: 15px; color: var(--suave); font-variant-numeric: tabular-nums; }
+.reloj span { font-weight: 700; color: var(--tinta); }
+
+/* ---------- Paso 3: revisión ---------- */
+.resumen-frase { margin: 12px 0 0; font-size: 17px; font-weight: 600; color: var(--tinta); background: var(--verde-fondo); border-radius: 10px; padding: 12px 14px; }
+.resumen-frase.con-pendientes { background: #eef2fb; }
+
+.pestanas { display: none; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--fondo); padding: 4px; border-radius: 10px; margin-top: 14px; position: sticky; top: 52px; z-index: 5; }
+.pestana { font: inherit; font-size: 15px; font-weight: 600; border: 0; background: transparent; border-radius: 8px; padding: 10px; color: var(--suave); cursor: pointer; }
+.pestana.activa { background: var(--blanco); color: var(--tinta); box-shadow: 0 1px 3px rgba(10, 31, 68, 0.12); }
+
+.revision-grid { display: grid; gap: 18px; margin-top: 16px; }
+.col-titulo { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--suave); }
+.col-doc .documento { max-height: 70vh; }
+
+@media (max-width: 899px) {
+    .pestanas { display: grid; }
+    .revision-grid[data-pestana="tabla"] .col-doc { display: none; }
+    .revision-grid[data-pestana="documento"] .col-tabla { display: none; }
+}
+@media (min-width: 900px) {
+    .revision-grid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr); align-items: start; }
+    .col-doc { position: sticky; top: 64px; }
+}
+
+/* Avisos */
+.alertas { display: grid; gap: 10px; margin-bottom: 14px; }
+.aviso-tarjeta { border-radius: 12px; padding: 12px 14px; cursor: pointer; border: 1.5px solid transparent; transition: border-color .2s; }
+.aviso-tarjeta.rojo { background: var(--rojo-fondo); }
+.aviso-tarjeta.amarillo { background: var(--amarillo-fondo); }
+.aviso-tarjeta:hover, .aviso-tarjeta:focus-visible { border-color: var(--tinta); outline: none; }
+.aviso-texto { margin: 0 0 10px; font-size: 15px; font-weight: 600; color: var(--tinta); }
+.aviso-tarjeta.rojo .aviso-texto::before { content: "● "; color: var(--rojo); }
+.aviso-tarjeta.amarillo .aviso-texto::before { content: "● "; color: #c48a00; }
+.aviso-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.aviso-boton, .aviso-elegir {
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    min-height: 40px; padding: 8px 14px; border-radius: 8px;
+    border: 1.5px solid #c8cfdb; background: var(--blanco); color: var(--tinta);
+}
+.aviso-boton.principal { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.aviso-boton:hover { border-color: var(--tinta); }
+
+.pista { margin: 0 0 12px; font-size: 14px; background: #fff8dd; border-radius: 8px; padding: 8px 12px; color: #5c4300; }
+.pista .boton.enlace { font-size: 14px; padding: 0 4px; }
+
+/* Tabla editable */
+.tabla-envoltura { margin-top: 14px; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+.tabla-rev { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla-rev th { text-align: left; font-size: 12px; font-weight: 600; color: var(--suave); background: var(--fondo); padding: 8px 6px; line-height: 1.2; }
+.tabla-rev th.num { text-align: right; }
+.tabla-rev td { padding: 4px; border-top: 1px solid #eef1f5; vertical-align: middle; }
+.tabla-rev td.num { text-align: right; }
+.tabla-rev input {
+    width: 100%; min-width: 0; font: inherit; font-size: 14px; color: var(--tinta);
+    border: 1px solid transparent; border-radius: 6px; background: transparent; padding: 7px 6px;
+}
+.tabla-rev td.num input { text-align: right; }
+.tabla-rev input:hover { border-color: var(--borde); background: var(--blanco); }
+.tabla-rev input:focus { outline: none; border-color: #9fb3d9; background: var(--blanco); }
+.tabla-rev input.rojo { background: var(--rojo-fondo); border-color: #ef9a9a; }
+.tabla-rev input.amarillo { background: var(--amarillo-fondo); border-color: #ecd27a; }
+.tabla-rev .calculado { font-weight: 600; color: var(--tinta); padding: 0 6px; }
+.tabla-rev .celda-rojo .calculado { color: var(--rojo); }
+.tabla-rev td small { display: block; font-size: 12px; color: var(--rojo); padding: 0 6px; white-space: nowrap; }
+.tabla-rev .fila { cursor: pointer; transition: background-color .2s; }
+.tabla-rev .fila.con-rojo { background: #fffafa; }
+.tabla-rev .fila.elegida { background: #eef2fb; box-shadow: inset 3px 0 0 var(--tinta); }
+.tabla-rev .quitar { width: 34px; text-align: center; }
+.boton-quitar { border: 0; background: none; color: var(--suave); font-size: 15px; cursor: pointer; padding: 6px; border-radius: 6px; }
+.boton-quitar:hover { color: var(--rojo); background: var(--rojo-fondo); }
+.fila-cita td { background: #f4f6fa; font-size: 14px; color: var(--texto); padding: 8px 12px; }
+.cita-etiqueta { font-weight: 600; color: var(--suave); }
+.fila-cita q { font-style: italic; }
+
+/* En celular cada fila es una tarjeta */
+@media (max-width: 899px) {
+    .tabla-envoltura { border: 0; overflow: visible; }
+    .tabla-rev thead { display: none; }
+    .tabla-rev, .tabla-rev tbody { display: block; }
+    .tabla-rev tr.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; border: 1.5px solid var(--borde); border-radius: 12px; padding: 10px; margin-top: 10px; position: relative; }
+    .tabla-rev tr.fila.con-rojo { border-color: #ef9a9a; }
+    .tabla-rev tr.fila.elegida { border-color: var(--tinta); box-shadow: none; }
+    .tabla-rev td { display: block; border: 0; padding: 0; text-align: left !important; }
+    .tabla-rev td::before { content: attr(data-etiqueta); display: block; font-size: 12px; font-weight: 600; color: var(--suave); margin-bottom: 2px; }
+    .tabla-rev td:first-child { grid-column: 1 / -1; padding-right: 34px; }
+    .tabla-rev td.num input { text-align: left; }
+    .tabla-rev input { border-color: var(--borde); background: var(--blanco); font-size: 16px; padding: 8px; }
+    .tabla-rev .quitar { position: absolute; top: 6px; right: 6px; width: auto; }
+    .tabla-rev .quitar::before { display: none; }
+    .tabla-rev .calculado { display: block; padding: 8px 0; font-size: 16px; }
+    .tabla-rev td small { padding: 0; }
+    .tabla-rev tr.fila-cita { display: block; }
+    .tabla-rev tr.fila-cita td { display: block; border-radius: 0 0 10px 10px; margin-top: -4px; }
+    .tabla-rev tr.fila-cita td::before { display: none; }
+}
+
+/* Resaltado del texto de origen en el documento */
+::highlight(fuyu-fuente) { background-color: #ffd54f; color: #111; }
+.fuente-marcada, .doc-excel tr.fuente-marcada td { background: #ffe58a !important; }
+
+.texto-leido { margin-top: 18px; border-top: 1px solid var(--borde); padding-top: 12px; }
+.texto-leido summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--suave); }
+.texto-leido pre { white-space: pre-wrap; word-break: break-word; font-size: 13px; max-height: 320px; overflow: auto; background: var(--fondo); padding: 10px; border-radius: 8px; }

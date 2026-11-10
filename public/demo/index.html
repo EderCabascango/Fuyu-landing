@@ -87,20 +87,45 @@
             <p class="estado" id="estado" role="status" aria-live="polite"></p>
         </section>
 
+        <!-- Leyendo -->
+        <section class="tarjeta oculto" id="leyendo" aria-live="polite">
+            <h2 class="paso-titulo" id="leyendo-titulo">Fuyu está leyendo su pedido</h2>
+            <ol class="etapas" id="etapas">
+                <li data-etapa="1">Leyendo el documento</li>
+                <li data-etapa="2" id="etapa-2">Buscando cliente, fecha y variedades</li>
+                <li data-etapa="3" id="etapa-3">Revisando contra el catálogo de la finca</li>
+                <li data-etapa="4">Listo</li>
+            </ol>
+            <p class="reloj"><span id="reloj">0,0</span> s</p>
+        </section>
+
         <!-- Revisión -->
         <section class="tarjeta oculto" id="paso-2">
             <h2 class="paso-titulo">Revise lo marcado</h2>
             <p class="tiempo-lectura" id="tiempo-lectura"></p>
-            <p class="ayuda">Lo marcado en <span class="pill rojo">rojo</span> hay que corregirlo; lo marcado en <span class="pill amarillo">amarillo</span> conviene revisarlo. Puede editar cualquier casilla.</p>
+            <p class="resumen-frase" id="resumen-frase"></p>
 
-            <div class="resumen-alertas" id="resumen-alertas"></div>
+            <div class="pestanas" role="tablist" aria-label="Ver documento o tabla">
+                <button class="pestana" role="tab" aria-selected="false" data-pestana="documento" type="button">Documento</button>
+                <button class="pestana activa" role="tab" aria-selected="true" data-pestana="tabla" type="button">Tabla</button>
+            </div>
 
-            <details class="original" id="original">
-                <summary>Ver el documento original</summary>
-                <div id="original-cuerpo"></div>
+            <div class="revision-grid" id="revision-grid" data-pestana="tabla">
+                <div class="col-doc">
+                    <p class="col-titulo">Así llegó</p>
+                    <div class="documento" id="rev-documento"></div>
+                </div>
+                <div class="col-tabla">
+                    <div class="alertas" id="alertas"></div>
+                    <p class="pista oculto" id="pista">Toque una celda amarilla para corregirla. <button class="boton enlace" id="pista-ok" type="button">Entendido</button></p>
+                    <div id="revision"></div>
+                </div>
+            </div>
+
+            <details class="texto-leido" id="texto-leido">
+                <summary>Ver el texto que leyó Fuyu</summary>
+                <pre id="texto-leido-cuerpo"></pre>
             </details>
-
-            <div id="revision"></div>
         </section>
 
         <!-- Aprobar y descargar -->

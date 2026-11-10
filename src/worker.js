@@ -31,6 +31,7 @@ const ESQUEMA_PEDIDO = objeto({
       total_tallos_declarado: { ...num, description: "Solo si el pedido escribe un total de tallos para la línea" },
       precio_tallo: { ...num, description: "Precio por tallo en USD, si viene" },
       notas: txt,
+      fuente: { ...txt, description: "Copia literal y exacta del pedazo del documento del que sale esta línea" },
     }),
   },
   observaciones: txt,
@@ -48,6 +49,7 @@ const ESQUEMA_FACTURA = objeto({
       cantidad: num,
       precio_unitario: num,
       subtotal_linea: num,
+      fuente: { ...txt, description: "Copia literal y exacta del pedazo del documento del que sale este ítem" },
     }),
   },
   subtotal: num,
@@ -61,7 +63,10 @@ function instrucciones(modo, hoy) {
     `Hoy es ${hoy}. Extrae los datos exactamente como aparecen en el documento. ` +
     "No inventes nada: si un dato no está, usa null. No corrijas errores ni recalcules totales: " +
     "copia los números que están escritos, aunque no cuadren. Las fechas van en formato AAAA-MM-DD; " +
-    "si falta el año, usa el próximo año en que caiga esa fecha a partir de hoy.";
+    "si falta el año, usa el próximo año en que caiga esa fecha a partir de hoy. " +
+    "En cada línea, el campo fuente es una copia literal del texto del documento del que sale esa línea: " +
+    "los mismos caracteres, sin traducir, sin corregir y sin agregar nada, de máximo 120 caracteres " +
+    "(por ejemplo la fila de la tabla o el mensaje donde aparece). Si viene de una imagen, copia lo que se lee.";
   if (modo === "pedido") {
     return (
       "Lees pedidos que importadores de flores envían a una finca de rosas en Ecuador " +

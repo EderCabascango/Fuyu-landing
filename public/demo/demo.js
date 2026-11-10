@@ -1,4 +1,4 @@
-import { validarPedido, validarFactura, totalTallosCalculado } from "./validaciones.js";
+import { validarPedido, validarFactura, totalTallosCalculado, dinero, miles } from "./validaciones.js";
 
 const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 const PDFJS_WORKER = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
@@ -32,18 +32,16 @@ const CAMPOS = {
       { k: "mercado", e: "Mercado" },
     ],
     linea: [
-      { k: "variedad", e: "Variedad", ancho: true },
-      { k: "largo_cm", e: "Largo (cm)", n: true },
-      { k: "cajas", e: "Cajas", n: true },
-      { k: "tipo_caja", e: "Tipo de caja" },
-      { k: "bonches_por_caja", e: "Bonches por caja", n: true },
-      { k: "tallos_por_bonche", e: "Tallos por bonche", n: true },
-      { k: "total_tallos_declarado", e: "Tallos según pedido", n: true },
-      { k: "_calculado", e: "Tallos calculados", calc: (l) => fmtEntero(totalTallosCalculado(l)) },
-      { k: "precio_tallo", e: "Precio por tallo", n: true },
+      { k: "variedad", e: "Variedad", tam: 15 },
+      { k: "largo_cm", e: "Largo", n: true, tam: 3 },
+      { k: "cajas", e: "Cajas", n: true, tam: 3 },
+      { k: "tipo_caja", e: "Tipo", tam: 3 },
+      { k: "bonches_por_caja", e: "Bonches por caja", n: true, tam: 3 },
+      { k: "tallos_por_bonche", e: "Tallos por bonche", n: true, tam: 3 },
+      { k: "_calculado", e: "Tallos", calc: true },
+      { k: "precio_tallo", e: "Precio", n: true, tam: 5 },
     ],
-    columnas: "1.6fr .7fr .6fr .7fr .8fr .8fr .9fr .9fr .8fr 32px",
-    nuevaLinea: () => ({ variedad: "", largo_cm: "", cajas: "", tipo_caja: "", bonches_por_caja: "", tallos_por_bonche: "25", total_tallos_declarado: "", precio_tallo: "", notas: "" }),
+    nuevaLinea: () => ({ variedad: "", largo_cm: "", cajas: "", tipo_caja: "", bonches_por_caja: "", tallos_por_bonche: "25", total_tallos_declarado: "", precio_tallo: "", notas: "", fuente: "" }),
   },
   factura: {
     cabecera: [
@@ -53,10 +51,10 @@ const CAMPOS = {
       { k: "fecha", e: "Fecha", ph: "AAAA-MM-DD" },
     ],
     linea: [
-      { k: "descripcion", e: "Descripción", ancho: true },
-      { k: "cantidad", e: "Cantidad", n: true },
-      { k: "precio_unitario", e: "Precio unitario", n: true },
-      { k: "subtotal_linea", e: "Valor", n: true },
+      { k: "descripcion", e: "Descripción", tam: 26 },
+      { k: "cantidad", e: "Cantidad", n: true, tam: 5 },
+      { k: "precio_unitario", e: "Precio unitario", n: true, tam: 6 },
+      { k: "subtotal_linea", e: "Valor", n: true, tam: 7 },
     ],
     totales: [
       { k: "subtotal", e: "Subtotal" },
@@ -64,14 +62,13 @@ const CAMPOS = {
       { k: "iva", e: "IVA ($)" },
       { k: "total", e: "Total" },
     ],
-    columnas: "3fr 1fr 1fr 1fr 32px",
-    nuevaLinea: () => ({ descripcion: "", cantidad: "", precio_unitario: "", subtotal_linea: "" }),
+    nuevaLinea: () => ({ descripcion: "", cantidad: "", precio_unitario: "", subtotal_linea: "", fuente: "" }),
   },
 };
 
 // ---------------- Estado ----------------
 
-const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "", preparado: null };
+const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "", preparado: null, ignorados: new Set(), fila: null };
 const $ = (s) => document.querySelector(s);
 
 const fmtEntero = (n) => (n === null || n === undefined || isNaN(n) ? "—" : Number(n).toLocaleString("es-EC"));
@@ -115,6 +112,8 @@ async function iniciar() {
   });
   $("#vp-cerrar").addEventListener("click", cerrarVistaPrevia);
   $("#btn-leer-doc").addEventListener("click", leerConFuyu);
+  document.querySelectorAll(".pestana").forEach((b) => b.addEventListener("click", () => cambiarPestana(b.dataset.pestana)));
+  $("#pista-ok").addEventListener("click", ocultarPista);
   $("#btn-aprobar").addEventListener("click", aprobar);
   $("#btn-excel").addEventListener("click", () => descargar("xlsx"));
   $("#btn-csv").addEventListener("click", () => descargar("csv"));
@@ -256,22 +255,6 @@ function cerrarVistaPrevia() {
   document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
   ocultarRevision();
   ponerPaso(1);
-}
-
-async function leerConFuyu() {
-  if (!estado.preparado) return;
-  try {
-    bloquear(true);
-    ponerPaso(2);
-    await enviar(estado.preparado.contenido, estado.preparado.vista);
-    ponerPaso(3);
-  } catch (e) {
-    ponerPaso(1);
-    mensaje(e.message, "error");
-    $("#estado").scrollIntoView({ behavior: "smooth", block: "center" });
-  } finally {
-    bloquear(false);
-  }
 }
 
 // ---------------- Preparar el archivo en el navegador ----------------
@@ -526,35 +509,84 @@ function pintarDocumento(vista, cont) {
   cont.append(nodo("div", "doc-texto", vista.texto));
 }
 
-// ---------------- Envío al servidor ----------------
+// ---------------- Leer con Fuyu: etapas reales y tiempo ----------------
 
-async function enviar(contenido, vista) {
-  mensaje(contenido.imagenes ? "Fuyu está leyendo la imagen del documento… (puede tardar unos segundos)" : "Fuyu está leyendo el documento…", "cargando");
-  const cuerpo = JSON.stringify({ modo: estado.modo, ...contenido });
-  if (new Blob([cuerpo]).size > MAX_BYTES) throw new Error("El documento es demasiado grande para la demo (máximo 2 MB).");
+function etapa(n, estadoEtapa) {
+  const li = document.querySelector(`#etapas li[data-etapa="${n}"]`);
+  li.classList.remove("activa", "hecha", "fallo");
+  if (estadoEtapa) li.classList.add(estadoEtapa);
+}
+
+async function leerConFuyu() {
+  if (!estado.preparado) return;
+  const { contenido, vista } = estado.preparado;
+  const esPedido = estado.modo === "pedido";
+  bloquear(true);
+  ocultarRevision();
+  mensaje("");
+  ponerPaso(2);
+
+  $("#leyendo-titulo").textContent = esPedido ? "Fuyu está leyendo su pedido" : "Fuyu está leyendo su factura";
+  $("#etapa-2").textContent = esPedido ? "Buscando cliente, fecha y variedades" : "Buscando proveedor, RUC y valores";
+  $("#etapa-3").textContent = esPedido ? "Revisando contra el catálogo de la finca" : "Revisando sumas, IVA y RUC";
+  [1, 2, 3, 4].forEach((n) => etapa(n, null));
+  const seccion = $("#leyendo");
+  seccion.classList.remove("oculto");
+  seccion.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const inicio = performance.now();
-  let r;
-  try {
-    r = await fetch("/api/procesar", { method: "POST", headers: { "content-type": "application/json" }, body: cuerpo });
-  } catch {
-    throw new Error("No hay conexión con el servidor. Revise su internet e intente de nuevo.");
-  }
-  const j = await r.json().catch(() => ({ ok: false, error: "Respuesta inesperada del servidor." }));
-  if (!j.ok) throw new Error(j.error || "No se pudo leer el documento.");
+  const segundos = () => ((performance.now() - inicio) / 1000).toLocaleString("es-EC", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const reloj = setInterval(() => ($("#reloj").textContent = segundos()), 100);
+  let enCurso = 1;
 
-  const segundos = ((performance.now() - inicio) / 1000).toLocaleString("es-EC", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  estado.datos = normalizarDatos(j.datos);
-  estado.aprobado = false;
-  mostrarOriginal(vista);
-  pintarRevision();
-  mensaje("");
-  $("#tiempo-lectura").textContent = `Fuyu leyó ${estado.modo === "pedido" ? "este pedido" : "esta factura"} en ${segundos} s`;
-  $("#paso-2").classList.remove("oculto");
-  $("#paso-3").classList.remove("oculto");
-  $("#descargas").classList.add("oculto");
-  $("#btn-aprobar").classList.remove("oculto");
-  $("#paso-2").scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    // 1. El documento ya se leyó en el navegador; se prepara y se envía
+    etapa(1, "activa");
+    const cuerpo = JSON.stringify({ modo: estado.modo, ...contenido });
+    if (new Blob([cuerpo]).size > MAX_BYTES) throw new Error("El documento es demasiado grande para la demo (máximo 2 MB).");
+    const peticion = fetch("/api/procesar", { method: "POST", headers: { "content-type": "application/json" }, body: cuerpo });
+    etapa(1, "hecha");
+
+    // 2. Fuyu busca los datos (espera la respuesta del servidor)
+    enCurso = 2;
+    etapa(2, "activa");
+    let r;
+    try { r = await peticion; } catch { throw new Error("No hay conexión con el servidor. Revise su internet e intente de nuevo."); }
+    const j = await r.json().catch(() => ({ ok: false, error: "Respuesta inesperada del servidor." }));
+    if (!j.ok) throw new Error(j.error || "No se pudo leer el documento.");
+    etapa(2, "hecha");
+
+    // 3. Reglas fijas contra el catálogo
+    enCurso = 3;
+    etapa(3, "activa");
+    estado.datos = normalizarDatos(j.datos);
+    estado.ignorados = new Set();
+    estado.fila = null;
+    estado.aprobado = false;
+    problemasActuales();
+    await new Promise((ok) => setTimeout(ok, 350)); // para que la etapa se alcance a ver
+    etapa(3, "hecha");
+
+    etapa(4, "hecha");
+    clearInterval(reloj);
+    const total = segundos();
+    $("#reloj").textContent = total;
+    await new Promise((ok) => setTimeout(ok, 500));
+
+    mostrarRevision(vista, contenido, total);
+    seccion.classList.add("oculto");
+    ponerPaso(3);
+    $("#paso-2").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    clearInterval(reloj);
+    etapa(enCurso, "fallo");
+    seccion.classList.add("oculto");
+    ponerPaso(1);
+    mensaje(e.message, "error");
+    $("#estado").scrollIntoView({ behavior: "smooth", block: "center" });
+  } finally {
+    bloquear(false);
+  }
 }
 
 // Todos los valores se manejan como texto en las casillas
@@ -576,40 +608,67 @@ function paraValidar() {
   return estado.modo === "pedido" ? d : { ...d, items: d.lineas };
 }
 
-function mostrarOriginal(vista) {
-  pintarDocumento(vista, $("#original-cuerpo"));
-  $("#original").open = false;
+// Problemas que siguen pendientes (los que el usuario dejó así no cuentan)
+function problemasActuales() {
+  const todos = estado.modo === "pedido" ? validarPedido(paraValidar(), estado.catalogo) : validarFactura(paraValidar());
+  return todos.filter((p) => !estado.ignorados.has(p.clave));
 }
 
 // ---------------- Pantalla de revisión ----------------
 
-function crearCampo(def, valor, alCambiar, extra = {}) {
-  const etq = document.createElement("label");
-  etq.className = `campo${def.ancho ? " ancho-completo" : ""}`;
-  const span = document.createElement("span");
-  span.textContent = def.e;
-  etq.appendChild(span);
-  if (def.calc) {
-    const div = document.createElement("div");
-    div.className = "calculado";
-    div.dataset.calc = def.k;
-    etq.appendChild(div);
-    return etq;
-  }
+function mostrarRevision(vista, contenido, segundos) {
+  const esPedido = estado.modo === "pedido";
+  $("#tiempo-lectura").textContent = `Fuyu leyó ${esPedido ? "este pedido" : "esta factura"} en ${segundos} s`;
+  pintarDocumento(vista, $("#rev-documento"));
+  const texto = contenido.texto || "";
+  $("#texto-leido").classList.toggle("oculto", !texto);
+  $("#texto-leido").open = false;
+  $("#texto-leido-cuerpo").textContent = texto;
+  cambiarPestana("tabla");
+  pintarRevision();
+  $("#paso-2").classList.remove("oculto");
+  $("#paso-3").classList.remove("oculto");
+  $("#descargas").classList.add("oculto");
+  $("#btn-aprobar").classList.remove("oculto");
+}
+
+function pistaYaVista() {
+  try { return localStorage.getItem("fuyu-pista") === "1"; } catch { return false; }
+}
+
+function ocultarPista() {
+  $("#pista").classList.add("oculto");
+  try { localStorage.setItem("fuyu-pista", "1"); } catch {}
+}
+
+function cambiarPestana(cual) {
+  $("#revision-grid").dataset.pestana = cual;
+  document.querySelectorAll(".pestana").forEach((b) => {
+    const activa = b.dataset.pestana === cual;
+    b.classList.toggle("activa", activa);
+    b.setAttribute("aria-selected", activa);
+  });
+}
+
+const enCelular = () => window.matchMedia("(max-width: 899px)").matches;
+
+function crearInput(def, valor, linea) {
   const inp = document.createElement("input");
   inp.value = valor;
   inp.dataset.campo = def.k;
-  if (extra.linea !== undefined) inp.dataset.linea = extra.linea;
+  if (linea !== null) inp.dataset.linea = linea;
   if (def.n) inp.inputMode = "decimal";
   if (def.ph) inp.placeholder = def.ph;
-  inp.setAttribute("aria-label", def.e);
+  if (def.tam) inp.size = def.tam;
+  inp.setAttribute("aria-label", linea !== null ? `${def.e}, línea ${linea + 1}` : def.e);
   inp.addEventListener("input", () => {
-    alCambiar(inp.value);
+    if (linea !== null) estado.datos.lineas[linea][def.k] = inp.value;
+    else estado.datos[def.k] = inp.value;
+    ocultarPista();
     desaprobar();
     actualizarAlertas();
   });
-  etq.appendChild(inp);
-  return etq;
+  return inp;
 }
 
 function pintarRevision() {
@@ -618,193 +677,346 @@ function pintarRevision() {
   const cont = $("#revision");
   cont.innerHTML = "";
 
-  const t1 = document.createElement("h3");
-  t1.className = "seccion-titulo";
-  t1.textContent = estado.modo === "pedido" ? "Datos del pedido" : "Datos de la factura";
-  cont.appendChild(t1);
-
+  // Datos generales
   const cab = document.createElement("div");
   cab.className = `encabezado ${estado.modo}`;
-  for (const def of conf.cabecera) cab.appendChild(crearCampo(def, d[def.k] ?? "", (v) => (d[def.k] = v)));
-  cont.appendChild(cab);
-
-  const t2 = document.createElement("h3");
-  t2.className = "seccion-titulo";
-  t2.textContent = estado.modo === "pedido" ? "Líneas del pedido" : "Ítems";
-  cont.appendChild(t2);
-
-  const tabla = document.createElement("div");
-  tabla.className = "lineas";
-  tabla.style.setProperty("--columnas", conf.columnas);
-
-  const encab = document.createElement("div");
-  encab.className = "cabecera-tabla";
-  for (const def of conf.linea) {
-    const s = document.createElement("span");
-    s.textContent = def.e;
-    encab.appendChild(s);
+  for (const def of conf.cabecera) {
+    const etq = document.createElement("label");
+    etq.className = "campo";
+    etq.append(nodo("span", "", def.e), crearInput(def, d[def.k] ?? "", null));
+    cab.append(etq);
   }
-  encab.appendChild(document.createElement("span"));
-  tabla.appendChild(encab);
+  cont.append(cab);
 
+  // Tabla editable
+  const envoltura = nodo("div", "tabla-envoltura");
+  const tabla = nodo("table", "tabla-rev");
+  const thead = nodo("thead");
+  const trh = nodo("tr");
+  for (const def of conf.linea) trh.append(nodo("th", def.n || def.calc ? "num" : "", def.e));
+  trh.append(nodo("th", "", ""));
+  thead.append(trh);
+  const tbody = nodo("tbody");
   d.lineas.forEach((l, i) => {
-    const fila = document.createElement("div");
-    fila.className = "linea";
-    fila.dataset.indice = i;
+    const tr = nodo("tr", "fila");
+    tr.dataset.linea = i;
+    for (const def of conf.linea) {
+      const td = nodo("td", def.n || def.calc ? "num" : "");
+      td.dataset.etiqueta = def.e;
+      if (def.calc) {
+        td.append(nodo("span", "calculado"));
+        td.dataset.calc = def.k;
+      } else td.append(crearInput(def, l[def.k] ?? "", i));
+      tr.append(td);
+    }
+    const tdq = nodo("td", "quitar");
+    const q = nodo("button", "boton-quitar", "✕");
+    q.type = "button";
+    q.setAttribute("aria-label", `Quitar línea ${i + 1}`);
+    q.addEventListener("click", (e) => { e.stopPropagation(); quitarLinea(i); });
+    tdq.append(q);
+    tr.append(tdq);
+    tr.addEventListener("click", () => elegirFila(i));
+    tr.addEventListener("focusin", () => elegirFila(i, { sinCambiarPestana: true }));
+    tbody.append(tr);
 
-    const top = document.createElement("div");
-    top.className = "linea-cab";
-    top.innerHTML = `<span>${estado.modo === "pedido" ? "Línea" : "Ítem"} ${i + 1}</span>`;
-    const borrar = document.createElement("button");
-    borrar.className = "boton peligro";
-    borrar.textContent = "Quitar";
-    borrar.addEventListener("click", () => quitarLinea(i));
-    top.appendChild(borrar);
-    fila.appendChild(top);
-
-    for (const def of conf.linea) fila.appendChild(crearCampo(def, l[def.k] ?? "", (v) => (l[def.k] = v), { linea: i }));
-
-    const borrar2 = document.createElement("button");
-    borrar2.className = "boton peligro borrar-escritorio";
-    borrar2.textContent = "✕";
-    borrar2.title = "Quitar línea";
-    borrar2.setAttribute("aria-label", `Quitar línea ${i + 1}`);
-    borrar2.addEventListener("click", () => quitarLinea(i));
-    fila.appendChild(borrar2);
-
-    const alertas = document.createElement("ul");
-    alertas.className = "linea-alertas";
-    fila.appendChild(alertas);
-    tabla.appendChild(fila);
+    // Fila con la cita del documento (para PDF, fotos o cuando se pide verla)
+    const trc = nodo("tr", "fila-cita oculto");
+    trc.dataset.cita = i;
+    const tdc = nodo("td");
+    tdc.colSpan = conf.linea.length + 1;
+    trc.append(tdc);
+    tbody.append(trc);
   });
-  cont.appendChild(tabla);
+  tabla.append(thead, tbody);
+  envoltura.append(tabla);
+  cont.append(envoltura);
 
-  const agregar = document.createElement("button");
-  agregar.className = "boton secundario agregar";
-  agregar.textContent = estado.modo === "pedido" ? "Agregar línea" : "Agregar ítem";
+  const agregar = nodo("button", "boton secundario agregar", estado.modo === "pedido" ? "Agregar línea" : "Agregar ítem");
+  agregar.type = "button";
   agregar.addEventListener("click", () => {
     d.lineas.push(conf.nuevaLinea());
     desaprobar();
     pintarRevision();
   });
-  cont.appendChild(agregar);
-
-  const tot = document.createElement("div");
-  tot.className = "totales";
-  tot.id = "totales";
-  cont.appendChild(tot);
+  cont.append(agregar);
 
   if (conf.totales) {
-    const t3 = document.createElement("h3");
-    t3.className = "seccion-titulo";
-    t3.textContent = "Totales de la factura";
-    cont.insertBefore(t3, tot);
-    const grid = document.createElement("div");
-    grid.className = "encabezado factura-totales";
-    for (const def of conf.totales) grid.appendChild(crearCampo({ ...def, n: true }, d[def.k] ?? "", (v) => (d[def.k] = v)));
-    cont.insertBefore(grid, tot);
+    const grid = nodo("div", "encabezado factura-totales");
+    for (const def of conf.totales) {
+      const etq = nodo("label", "campo");
+      etq.append(nodo("span", "", def.e), crearInput({ ...def, n: true }, d[def.k] ?? "", null));
+      grid.append(etq);
+    }
+    cont.append(grid);
   }
-
   actualizarAlertas();
 }
 
 function quitarLinea(i) {
   estado.datos.lineas.splice(i, 1);
+  estado.ignorados = new Set([...estado.ignorados].filter((k) => !/^\d+-/.test(k)));
+  estado.fila = null;
   desaprobar();
   pintarRevision();
 }
 
-function problemasActuales() {
-  return estado.modo === "pedido" ? validarPedido(paraValidar(), estado.catalogo) : validarFactura(paraValidar());
+// ---------------- Resumen en una frase (calculado aquí) ----------------
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+function fechaLarga(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
+  return m ? `${Number(m[3])} de ${MESES[Number(m[2]) - 1]}` : null;
 }
 
+function fraseResumen(pendientes) {
+  const d = estado.datos;
+  const k = pendientes.length;
+  const cola = k ? `${k} ${k === 1 ? "cosa" : "cosas"} para revisar.` : "Todo cuadra.";
+  if (estado.modo === "pedido") {
+    const variedades = new Set(d.lineas.map((l) => String(l.variedad).trim().toLowerCase()).filter(Boolean)).size;
+    let tallos = 0, valor = 0, sinPrecio = 0;
+    for (const l of d.lineas) {
+      const t = totalTallosCalculado(l) ?? num(l.total_tallos_declarado) ?? 0;
+      tallos += t;
+      if (num(l.precio_tallo) !== null) valor += t * num(l.precio_tallo);
+      else sinPrecio++;
+    }
+    const fecha = fechaLarga(d.fecha_entrega);
+    const partes = [`${variedades} ${variedades === 1 ? "variedad" : "variedades"}`, `${miles(tallos)} tallos`];
+    if (valor > 0) partes.push(`${dinero(valor)}${sinPrecio ? ` (sin ${sinPrecio === 1 ? "1 línea" : `${sinPrecio} líneas`} sin precio)` : ""}`);
+    return `Pedido ${d.cliente ? `de ${d.cliente}` : "sin cliente"}${fecha ? ` para el ${fecha}` : ""}: ${partes.join(", ")}. ${cola}`;
+  }
+  const fecha = fechaLarga(d.fecha);
+  const total = num(d.total);
+  const n = d.lineas.length;
+  return `Factura ${d.proveedor ? `de ${d.proveedor}` : "sin proveedor"}${fecha ? ` del ${fecha}` : ""}: ${n} ${n === 1 ? "ítem" : "ítems"}${total !== null ? `, total ${dinero(total)}` : ""}. ${cola}`;
+}
+
+// ---------------- Avisos con arreglo en un toque ----------------
+
 function actualizarAlertas() {
-  const problemas = problemasActuales();
+  const pendientes = problemasActuales();
 
   // Colores en las casillas
   document.querySelectorAll("#revision input").forEach((inp) => {
     const linea = inp.dataset.linea === undefined ? null : Number(inp.dataset.linea);
-    const p = problemas.filter((x) => x.campo === inp.dataset.campo && x.linea === linea);
+    const p = pendientes.filter((x) => x.campo === inp.dataset.campo && x.linea === linea);
     inp.classList.toggle("rojo", p.some((x) => x.nivel === "rojo"));
     inp.classList.toggle("amarillo", !p.some((x) => x.nivel === "rojo") && p.some((x) => x.nivel === "amarillo"));
   });
 
-  // Mensajes bajo cada línea
-  document.querySelectorAll("#revision .linea").forEach((fila) => {
-    const i = Number(fila.dataset.indice);
+  // Tallos calculados y filas con problemas
+  document.querySelectorAll("#revision .fila").forEach((tr) => {
+    const i = Number(tr.dataset.linea);
     const l = estado.datos.lineas[i];
-    const propios = problemas.filter((x) => x.linea === i);
-    const ul = fila.querySelector(".linea-alertas");
-    ul.innerHTML = "";
-    for (const p of propios) {
-      const li = document.createElement("li");
-      li.className = p.nivel;
-      const m = p.mensaje.replace(/^(Línea|Ítem) \d+: /, "");
-      li.textContent = m.charAt(0).toUpperCase() + m.slice(1);
-      ul.appendChild(li);
-    }
-    fila.classList.toggle("con-rojo", propios.some((x) => x.nivel === "rojo"));
-    fila.querySelectorAll("[data-calc]").forEach((el) => {
-      const def = CAMPOS[estado.modo].linea.find((c) => c.k === el.dataset.calc);
-      el.textContent = def.calc(l);
+    const propios = pendientes.filter((x) => x.linea === i);
+    tr.classList.toggle("con-rojo", propios.some((x) => x.nivel === "rojo"));
+    tr.classList.toggle("con-amarillo", !propios.some((x) => x.nivel === "rojo") && propios.some((x) => x.nivel === "amarillo"));
+    tr.querySelectorAll("[data-calc]").forEach((td) => {
+      const span = td.querySelector(".calculado");
+      span.textContent = fmtEntero(totalTallosCalculado(l));
+      const suma = propios.find((x) => x.campo === "total_tallos_declarado");
+      td.classList.toggle("celda-rojo", !!suma);
+      td.querySelector("small")?.remove();
+      if (suma) td.append(nodo("small", "", `el pedido dice ${fmtEntero(num(l.total_tallos_declarado))}`));
     });
   });
 
-  // Resumen arriba
-  const resumen = $("#resumen-alertas");
-  resumen.innerHTML = "";
-  const rojos = problemas.filter((p) => p.nivel === "rojo").length;
-  const amarillos = problemas.length - rojos;
-  if (!problemas.length) {
-    resumen.innerHTML = estado.modo === "pedido"
-      ? `<p class="todo-bien">Todo cuadra con el catálogo y las reglas de la finca. Revise y apruebe.</p>`
-      : `<p class="todo-bien">Todo cuadra: RUC, sumas de los ítems, IVA y total. Revise y apruebe.</p>`;
-  } else {
-    const t = document.createElement("p");
-    t.className = "ayuda";
-    t.innerHTML = `<strong>${problemas.length} ${problemas.length === 1 ? "punto" : "puntos"} por revisar:</strong> ${rojos} en rojo, ${amarillos} en amarillo.`;
-    resumen.appendChild(t);
-    const ul = document.createElement("ul");
-    ul.className = "lista-alertas";
-    for (const p of [...problemas].sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1))) {
-      const li = document.createElement("li");
-      li.className = p.nivel;
-      li.textContent = p.mensaje;
-      ul.appendChild(li);
-    }
-    resumen.appendChild(ul);
-  }
-
-  pintarTotales();
+  // Tarjetas de aviso
+  const cont = $("#alertas");
+  cont.innerHTML = "";
+  const orden = [...pendientes].sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1));
+  for (const p of orden) cont.append(tarjetaAviso(p));
+  $("#resumen-frase").textContent = fraseResumen(pendientes);
+  // La pista sale la primera vez y solo si hay algo marcado para corregir
+  $("#pista").classList.toggle("oculto", pistaYaVista() || pendientes.length === 0);
+  $("#resumen-frase").classList.toggle("con-pendientes", pendientes.length > 0);
 }
 
-function pintarTotales() {
-  const tot = $("#totales");
-  const d = estado.datos;
-  const filas = [];
-  if (estado.modo === "pedido") {
-    let cajas = 0, tallos = 0, valor = 0, conPrecio = false;
-    for (const l of d.lineas) {
-      cajas += num(l.cajas) || 0;
-      const t = totalTallosCalculado(l) ?? num(l.total_tallos_declarado) ?? 0;
-      tallos += t;
-      if (num(l.precio_tallo) !== null) { valor += t * num(l.precio_tallo); conPrecio = true; }
+function tarjetaAviso(p) {
+  const card = nodo("div", `aviso-tarjeta ${p.nivel}`);
+  card.tabIndex = 0;
+  card.append(nodo("p", "aviso-texto", p.mensaje));
+  const acciones = nodo("div", "aviso-acciones");
+  for (const a of p.arreglos) {
+    if (a.tipo === "elegir") {
+      const sel = nodo("select", "aviso-elegir");
+      sel.setAttribute("aria-label", a.texto);
+      sel.append(new Option(a.texto, ""));
+      a.opciones.forEach((o) => sel.append(new Option(o, o)));
+      sel.addEventListener("click", (e) => e.stopPropagation());
+      sel.addEventListener("change", () => sel.value && aplicar({ tipo: "poner", campo: a.campo, linea: a.linea, valor: sel.value }, p));
+      acciones.append(sel);
+      continue;
     }
-    filas.push(["Cajas", fmtEntero(cajas)], ["Tallos", fmtEntero(tallos)]);
-    if (conPrecio) filas.push(["Valor estimado", `$${valor.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]);
-  } else {
-    const suma = d.lineas.reduce((s, l) => s + (num(l.subtotal_linea) || 0), 0);
-    const st = num(d.subtotal) || 0, iva = num(d.iva) || 0;
-    filas.push(["Suma de los ítems", `$${suma.toFixed(2)}`], ["Subtotal + IVA", `$${(st + iva).toFixed(2)}`]);
+    const b = nodo("button", a.tipo === "poner" ? "aviso-boton principal" : "aviso-boton", a.texto);
+    b.type = "button";
+    b.addEventListener("click", (e) => { e.stopPropagation(); aplicar(a, p); });
+    acciones.append(b);
   }
-  tot.innerHTML = "";
-  for (const [k, v] of filas) {
-    const div = document.createElement("div");
-    div.innerHTML = `<span></span><strong></strong>`;
-    div.firstChild.textContent = k;
-    div.lastChild.textContent = v;
-    tot.appendChild(div);
+  card.append(acciones);
+  const seleccionar = () => {
+    if (p.linea !== null) elegirFila(p.linea, { sinCambiarPestana: true });
+    else marcarTextoEnDocumento(estado.datos[p.campo]);
+  };
+  card.addEventListener("click", seleccionar);
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter") seleccionar(); });
+  return card;
+}
+
+function inputDe(campo, linea) {
+  const sel = linea === null ? `#revision input[data-campo="${campo}"]:not([data-linea])` : `#revision input[data-campo="${campo}"][data-linea="${linea}"]`;
+  return document.querySelector(sel);
+}
+
+function aplicar(a, p) {
+  if (a.tipo === "ignorar") {
+    estado.ignorados.add(p.clave);
+    desaprobar();
+    actualizarAlertas();
+    return;
   }
+  if (a.tipo === "ver") {
+    if (p.linea !== null) elegirFila(p.linea, { verDocumento: true });
+    else { if (enCelular()) cambiarPestana("documento"); marcarTextoEnDocumento(estado.datos[p.campo]); }
+    return;
+  }
+  if (a.tipo === "escribir") {
+    cambiarPestana("tabla");
+    const inp = inputDe(a.campo, a.linea);
+    if (inp) { inp.scrollIntoView({ behavior: "smooth", block: "center" }); inp.focus({ preventScroll: true }); }
+    return;
+  }
+  if (a.tipo === "poner") {
+    if (a.linea !== null) estado.datos.lineas[a.linea][a.campo] = a.valor;
+    else estado.datos[a.campo] = a.valor;
+    const inp = inputDe(a.campo, a.linea);
+    if (inp) inp.value = a.valor;
+    ocultarPista();
+    desaprobar();
+    actualizarAlertas();
+    if (a.linea !== null) elegirFila(a.linea, { sinCambiarPestana: true });
+  }
+}
+
+// ---------------- Rastreo: de la fila al documento ----------------
+
+function elegirFila(i, { verDocumento = false, sinCambiarPestana = false } = {}) {
+  estado.fila = i;
+  document.querySelectorAll("#revision .fila").forEach((tr) => tr.classList.toggle("elegida", Number(tr.dataset.linea) === i));
+  document.querySelectorAll("#revision .fila-cita").forEach((tr) => tr.classList.add("oculto"));
+  const fuente = estado.datos.lineas[i]?.fuente || "";
+  const vista = estado.preparado?.vista;
+  const enImagen = vista && (vista.tipo === "pdf" || vista.tipo === "imagen");
+  // En celular, si se pidió ver el documento, primero se cambia de pestaña para poder marcar y bajar hasta el texto
+  if (verDocumento && enCelular() && !enImagen && fuente) cambiarPestana("documento");
+  const encontrado = enImagen ? false : marcarTextoEnDocumento(fuente);
+  if (verDocumento && enCelular() && !encontrado) cambiarPestana("tabla");
+
+  // En PDF o fotos (o en celular) se muestra la cita debajo de la fila
+  if (fuente && (enImagen || (enCelular() && encontrado))) {
+    const trc = document.querySelector(`#revision .fila-cita[data-cita="${i}"]`);
+    const td = trc.querySelector("td");
+    td.innerHTML = "";
+    td.append(nodo("span", "cita-etiqueta", "En el documento dice: "), nodo("q", "", fuente));
+    if (!enImagen && enCelular()) {
+      const b = nodo("button", "boton enlace", "Ver en el documento");
+      b.type = "button";
+      b.addEventListener("click", (e) => { e.stopPropagation(); elegirFila(i, { verDocumento: true }); });
+      td.append(" ", b);
+    }
+    trc.classList.remove("oculto");
+  }
+}
+
+const normalizarLetra = (c) => c.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// Arma el texto visible del documento con un mapa de vuelta a cada nodo de texto
+function mapaDeTexto(raiz, sinPuntuacion) {
+  const recorrido = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  let texto = "";
+  const mapa = [];
+  const agregarEspacio = () => { if (texto && !texto.endsWith(" ")) { texto += " "; mapa.push(null); } };
+  for (let n = recorrido.nextNode(); n; n = recorrido.nextNode()) {
+    if (n.parentElement?.closest(".hora")) continue;
+    for (let k = 0; k < n.data.length; k++) {
+      let c = normalizarLetra(n.data[k]);
+      if (sinPuntuacion && !/[\p{L}\p{N}]/u.test(c)) c = " ";
+      if (/\s/.test(c)) agregarEspacio();
+      else { texto += c; mapa.push([n, k]); }
+    }
+    agregarEspacio();
+  }
+  return { texto, mapa };
+}
+
+function normalizarFragmento(s, sinPuntuacion) {
+  let t = "";
+  for (const ch of String(s)) {
+    let c = normalizarLetra(ch);
+    if (sinPuntuacion && !/[\p{L}\p{N}]/u.test(c)) c = " ";
+    if (/\s/.test(c)) { if (t && !t.endsWith(" ")) t += " "; }
+    else t += c;
+  }
+  return t.trim();
+}
+
+function limpiarMarcas() {
+  if (window.CSS?.highlights) CSS.highlights.delete("fuyu-fuente");
+  document.querySelectorAll(".fuente-marcada").forEach((e) => e.classList.remove("fuente-marcada"));
+}
+
+function llevarAVista(el) {
+  const caja = $("#rev-documento");
+  if (!el || !caja) return;
+  if (enCelular()) { el.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  const delta = el.getBoundingClientRect().top - caja.getBoundingClientRect().top;
+  caja.scrollTo({ top: caja.scrollTop + delta - 40, behavior: "smooth" });
+}
+
+// Marca en el documento el texto citado. Si no lo encuentra, no marca nada.
+function marcarTextoEnDocumento(fragmento) {
+  limpiarMarcas();
+  const raiz = $("#rev-documento");
+  if (!fragmento || !raiz || String(fragmento).trim().length < 3) return false;
+
+  // Excel: se busca la fila completa
+  const excel = raiz.querySelector(".doc-excel");
+  if (excel) {
+    const buscado = normalizarFragmento(fragmento, true);
+    if (buscado.length < 3) return false;
+    for (const tr of excel.querySelectorAll("tbody tr")) {
+      const fila = normalizarFragmento([...tr.querySelectorAll("td")].map((td) => td.textContent).join(" "), true);
+      if (fila && (fila.includes(buscado) || (buscado.includes(fila) && fila.length > 5))) {
+        tr.classList.add("fuente-marcada");
+        llevarAVista(tr);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  for (const sinPuntuacion of [false, true]) {
+    const { texto, mapa } = mapaDeTexto(raiz, sinPuntuacion);
+    const buscado = normalizarFragmento(fragmento, sinPuntuacion);
+    if (buscado.length < 3) continue;
+    const pos = texto.indexOf(buscado);
+    if (pos < 0) continue;
+    let ini = pos, fin = pos + buscado.length - 1;
+    while (ini <= fin && !mapa[ini]) ini++;
+    while (fin >= ini && !mapa[fin]) fin--;
+    if (ini > fin) continue;
+    const rango = document.createRange();
+    rango.setStart(mapa[ini][0], mapa[ini][1]);
+    rango.setEnd(mapa[fin][0], mapa[fin][1] + 1);
+    const elemento = rango.startContainer.parentElement;
+    if (window.CSS?.highlights && window.Highlight) CSS.highlights.set("fuyu-fuente", new Highlight(rango));
+    else elemento.classList.add("fuente-marcada");
+    llevarAVista(elemento);
+    return true;
+  }
+  return false;
 }
 
 // ---------------- Aprobación y descarga ----------------
