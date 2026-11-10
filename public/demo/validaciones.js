@@ -170,7 +170,9 @@ export function validarFactura(f) {
       push(`${i}-valor`, "rojo", "subtotal_linea", `${nombre}: ${c} × ${dinero(pu)} dan ${dinero(c * pu)}, pero dice ${dinero(st)}.`, [poner(`Usar ${dinero(c * pu)}`, "subtotal_linea", i, redondo(c * pu)), VER], i);
   });
 
-  const subtotal = numero(f.subtotal), iva = numero(f.iva), total = numero(f.total), tarifa = numero(f.tarifa_iva);
+  const subtotal = numero(f.subtotal), iva = numero(f.iva), total = numero(f.total);
+  let tarifa = numero(f.tarifa_iva);
+  if (tarifa !== null && tarifa > 0 && tarifa < 1) tarifa = Math.round(tarifa * 10000) / 100; // 0.15 → 15
   if (subtotal === null) push("subtotal-falta", "rojo", "subtotal", "Falta el subtotal.", [escribir("Escribirlo", "subtotal"), VER]);
   if (iva === null) push("iva-falta", "rojo", "iva", "Falta el valor del IVA.", [escribir("Escribirlo", "iva"), VER]);
   if (total === null) push("total-falta", "rojo", "total", "Falta el total.", [escribir("Escribirlo", "total"), VER]);

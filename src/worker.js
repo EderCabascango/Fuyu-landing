@@ -77,7 +77,8 @@ function instrucciones(modo, hoy) {
       "\"HB\" es half box, \"QB\" quarter box, \"FB\" full box. " +
       "En total_tallos_declarado pon solo el total de tallos que el pedido escribe para esa línea; si no lo escribe, null. " +
       "El cliente es la empresa que compra (por ejemplo \"Bloomfield Wholesale Inc.\"), no la persona que escribe; " +
-      "usa el nombre de la persona solo si no aparece ninguna empresa. " +
+      "usa el nombre de la persona solo si no aparece ninguna empresa. La empresa suele estar en el encabezado, " +
+      "en la firma o en la primera fila de una hoja de cálculo. " +
       "El mercado es solo el país de destino, escrito en español (por ejemplo \"Estados Unidos\", \"Países Bajos\", \"Rusia\"), sin la ciudad."
     );
   }

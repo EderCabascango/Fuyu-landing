@@ -1,4 +1,4 @@
-import { validarPedido, validarFactura, totalTallosCalculado, dinero, miles } from "./validaciones.js";
+import { validarPedido, validarFactura, totalTallosCalculado, buscarVariedad, dinero, miles } from "./validaciones.js";
 
 const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 const PDFJS_WORKER = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
@@ -598,6 +598,11 @@ function normalizarDatos(d) {
   salida.lineas = (d[claveLineas] || []).map((l) => {
     const fila = conf.nuevaLinea();
     for (const k of Object.keys(fila)) fila[k] = aTexto(l[k]);
+    // Si la variedad es del catálogo (aunque venga en minúsculas o sin tildes), se escribe como en el catálogo
+    if ("variedad" in fila && fila.variedad) {
+      const { exacta } = buscarVariedad(fila.variedad, estado.catalogo);
+      if (exacta) fila.variedad = exacta.nombre;
+    }
     return fila;
   });
   return salida;
@@ -784,7 +789,7 @@ function fraseResumen(pendientes) {
     }
     const fecha = fechaLarga(d.fecha_entrega);
     const partes = [`${variedades} ${variedades === 1 ? "variedad" : "variedades"}`, `${miles(tallos)} tallos`];
-    if (valor > 0) partes.push(`${dinero(valor)}${sinPrecio ? ` (sin ${sinPrecio === 1 ? "1 línea" : `${sinPrecio} líneas`} sin precio)` : ""}`);
+    if (valor > 0) partes.push(`${dinero(valor)}${sinPrecio ? ` (sin contar ${sinPrecio === 1 ? "1 línea sin precio" : `${sinPrecio} líneas sin precio`})` : ""}`);
     return `Pedido ${d.cliente ? `de ${d.cliente}` : "sin cliente"}${fecha ? ` para el ${fecha}` : ""}: ${partes.join(", ")}. ${cola}`;
   }
   const fecha = fechaLarga(d.fecha);
