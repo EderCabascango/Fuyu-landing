@@ -35,8 +35,10 @@ Opción B, desde el panel: Workers & Pages → `fuyu` → Settings → Variables
 |---|---|
 | `GROQ_MODELO_TEXTO` | Modelo para texto (correos, WhatsApp, PDF con texto, Excel). Hoy `openai/gpt-oss-120b`. |
 | `GROQ_MODELO_VISION` | Modelo para fotos y PDF escaneados. Hoy `qwen/qwen3.8-27b` (en vista previa en Groq). |
-| `LIMITE_POR_HORA` | Documentos por IP por hora (20). |
 | `TAMANO_MAXIMO_BYTES` | Tamaño máximo de lo que se envía (2 MB). |
+
+El límite de uso por IP (5 documentos por minuto) está en `ratelimits` dentro de `wrangler.jsonc`.
+Cloudflare solo permite ventanas de 10 o 60 segundos.
 
 ## Documentos de ejemplo
 

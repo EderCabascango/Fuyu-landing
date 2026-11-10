@@ -2,8 +2,6 @@
 // que lee un pedido o una factura con Groq y devuelve los datos ordenados.
 // No se guarda ningún documento: el texto o la imagen solo pasa hacia Groq y la respuesta vuelve al navegador.
 
-import { DurableObject } from "cloudflare:workers";
-
 const MAX_IMAGENES = 3;
 const MAX_CARACTERES = 30000;
 
@@ -144,11 +142,17 @@ async function llamarGroq(env, { modo, texto, imagenes }) {
   const base = (env.GROQ_URL || "https://api.groq.com/openai/v1").replace(/\/$/, "");
   let ultimoEstado = 0;
   for (let intento = 0; intento < 2; intento++) {
-    const r = await fetch(`${base}/chat/completions`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${env.GROQ_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify(cuerpo),
-    });
+    let r;
+    try {
+      r = await fetch(`${base}/chat/completions`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${env.GROQ_API_KEY}`, "content-type": "application/json" },
+        body: JSON.stringify(cuerpo),
+      });
+    } catch (e) {
+      console.log("No se pudo conectar con Groq:", String(e).slice(0, 200));
+      return { estado: 502 };
+    }
     ultimoEstado = r.status;
     if (r.ok) {
       const j = await r.json();
@@ -204,16 +208,14 @@ async function procesar(request, env) {
   if (imagenes.length > MAX_IMAGENES) return error(`Máximo ${MAX_IMAGENES} páginas o fotos por documento.`, 400);
   if (!texto && imagenes.length === 0) return error("No llegó ningún contenido para leer.", 400);
 
-  // Límite de uso por IP y por hora
+  // Límite de uso por IP (5 documentos por minuto, configurado en wrangler.jsonc)
   const ip = request.headers.get("cf-connecting-ip") || "local";
-  const limite = Number(env.LIMITE_POR_HORA || 20);
-  const contador = env.LIMITE_IP.get(env.LIMITE_IP.idFromName(ip));
-  const { permitido, minutosRestantes } = await contador.contar(limite);
-  if (!permitido) {
+  const { success } = await env.LIMITADOR.limit({ key: ip });
+  if (!success) {
     return respuesta(
-      { ok: false, error: `Llegó al límite de ${limite} documentos por hora en la demo. Intente en unos ${minutosRestantes} minutos.` },
+      { ok: false, error: "Llegó al límite de documentos por minuto en la demo. Espere un minuto e intente de nuevo." },
       429,
-      { "retry-after": String(minutosRestantes * 60) }
+      { "retry-after": "60" }
     );
   }
 
@@ -235,31 +237,3 @@ export default {
     return env.ASSETS.fetch(request);
   },
 };
-
-// ---------- Contador por IP (una instancia por IP) ----------
-// Guarda solo { hora, n }: la hora en curso y cuántos documentos se procesaron en ella.
-
-export class LimiteIP extends DurableObject {
-  async contar(limite) {
-    const ahora = Date.now();
-    const horaActual = Math.floor(ahora / 3600000);
-    const estado = (await this.ctx.storage.get("c")) || { hora: horaActual, n: 0 };
-    if (estado.hora !== horaActual) {
-      estado.hora = horaActual;
-      estado.n = 0;
-    }
-    if (estado.n >= limite) {
-      const minutosRestantes = Math.max(1, Math.ceil(((horaActual + 1) * 3600000 - ahora) / 60000));
-      return { permitido: false, minutosRestantes };
-    }
-    estado.n += 1;
-    await this.ctx.storage.put("c", estado);
-    // Se borra solo al terminar la hora
-    await this.ctx.storage.setAlarm((horaActual + 1) * 3600000 + 1000);
-    return { permitido: true, minutosRestantes: 0 };
-  }
-
-  async alarm() {
-    await this.ctx.storage.deleteAll();
-  }
-}
