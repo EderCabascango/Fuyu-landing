@@ -68,7 +68,7 @@ const CAMPOS = {
 
 // ---------------- Estado ----------------
 
-const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "", preparado: null, ignorados: new Set(), fila: null };
+const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "", preparado: null, ignorados: new Set(), fila: null, recorrido: false };
 const $ = (s) => document.querySelector(s);
 
 const fmtEntero = (n) => (n === null || n === undefined || isNaN(n) ? "—" : Number(n).toLocaleString("es-EC"));
@@ -115,6 +115,10 @@ async function iniciar() {
   document.querySelectorAll(".pestana").forEach((b) => b.addEventListener("click", () => cambiarPestana(b.dataset.pestana)));
   $("#pista-ok").addEventListener("click", ocultarPista);
   $("#btn-aprobar").addEventListener("click", aprobar);
+  $("#btn-aprobar-igual").addEventListener("click", confirmarAprobacion);
+  $("#btn-seguir").addEventListener("click", () => { ponerBarra("revisar"); $("#alertas").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#btn-recorrido").addEventListener("click", recorrido);
+  $("#recorrido-detener").addEventListener("click", () => { estado.recorrido = false; });
   $("#btn-excel").addEventListener("click", () => descargar("xlsx"));
   $("#btn-csv").addEventListener("click", () => descargar("csv"));
   pintarEjemplos();
@@ -190,6 +194,7 @@ function bloquear(si) {
 function ocultarRevision() {
   $("#paso-2").classList.add("oculto");
   $("#paso-3").classList.add("oculto");
+  mostrarBarra(false);
 }
 
 // ---------------- Elegir y ver el documento ----------------
@@ -632,9 +637,9 @@ function mostrarRevision(vista, contenido, segundos) {
   cambiarPestana("tabla");
   pintarRevision();
   $("#paso-2").classList.remove("oculto");
-  $("#paso-3").classList.remove("oculto");
-  $("#descargas").classList.add("oculto");
-  $("#btn-aprobar").classList.remove("oculto");
+  $("#paso-3").classList.add("oculto");
+  mostrarBarra(true);
+  ponerBarra("revisar");
 }
 
 function pistaYaVista() {
@@ -835,6 +840,7 @@ function actualizarAlertas() {
   const orden = [...pendientes].sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1));
   for (const p of orden) cont.append(tarjetaAviso(p));
   $("#resumen-frase").textContent = fraseResumen(pendientes);
+  if (!estado.aprobado && $("#barra-aprobar").dataset.modo === "revisar") $("#ba-estado").textContent = textoPendientes();
   // La pista sale la primera vez y solo si hay algo marcado para corregir
   $("#pista").classList.toggle("oculto", pistaYaVista() || pendientes.length === 0);
   $("#resumen-frase").classList.toggle("con-pendientes", pendientes.length > 0);
@@ -1027,23 +1033,149 @@ function marcarTextoEnDocumento(fragmento) {
 
 // ---------------- Aprobación y descarga ----------------
 
+// ---------------- Barra fija: aprobar y descargar ----------------
+
+function textoPendientes() {
+  const pendientes = problemasActuales();
+  const rojos = pendientes.filter((p) => p.nivel === "rojo").length;
+  if (!pendientes.length) return "Todo cuadra. Listo para aprobar.";
+  if (rojos) return `${pendientes.length} ${pendientes.length === 1 ? "cosa" : "cosas"} para revisar · ${rojos} en rojo`;
+  return `${pendientes.length} ${pendientes.length === 1 ? "cosa" : "cosas"} para revisar`;
+}
+
+function ponerBarra(modo) {
+  const ver = (id, si) => $(id).classList.toggle("oculto", !si);
+  const barra = $("#barra-aprobar");
+  barra.dataset.modo = modo;
+  ver("#btn-aprobar", modo === "revisar");
+  ver("#btn-seguir", modo === "confirmar");
+  ver("#btn-aprobar-igual", modo === "confirmar");
+  ver("#btn-excel", modo === "aprobado");
+  ver("#btn-csv", modo === "aprobado");
+  if (modo === "revisar") $("#ba-estado").textContent = textoPendientes();
+  if (modo === "confirmar") {
+    const rojos = problemasActuales().filter((p) => p.nivel === "rojo").length;
+    $("#ba-estado").textContent = `Quedan ${rojos} ${rojos === 1 ? "cosa" : "cosas"} en rojo. ¿Aprobar igual?`;
+  }
+  if (modo === "aprobado") $("#ba-estado").textContent = "✓ Aprobado. Descargue el archivo para su sistema.";
+}
+
+function mostrarBarra(si) {
+  $("#barra-aprobar").classList.toggle("oculto", !si);
+  document.body.classList.toggle("con-barra", si);
+}
+
 function desaprobar() {
-  if (!estado.aprobado) return;
-  estado.aprobado = false;
-  $("#descargas").classList.add("oculto");
-  $("#btn-aprobar").classList.remove("oculto");
+  if (estado.aprobado) {
+    estado.aprobado = false;
+    $("#paso-3").classList.add("oculto");
+  }
+  if (!$("#barra-aprobar").classList.contains("oculto")) ponerBarra("revisar");
 }
 
 function aprobar() {
   const rojos = problemasActuales().filter((p) => p.nivel === "rojo").length;
-  if (rojos && !confirm(`Quedan ${rojos} ${rojos === 1 ? "punto" : "puntos"} en rojo. ¿Aprobar de todas formas?`)) return;
+  if (rojos) return ponerBarra("confirmar");
+  confirmarAprobacion();
+}
+
+function confirmarAprobacion() {
+  const rojos = problemasActuales().filter((p) => p.nivel === "rojo").length;
   estado.aprobado = true;
   const hora = new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", hour12: false });
   $("#texto-aprobado").textContent = rojos
-    ? `Aprobado a las ${hora}, con ${rojos} ${rojos === 1 ? "punto" : "puntos"} en rojo sin corregir.`
-    : `Aprobado a las ${hora}. Listo para cargar.`;
-  $("#btn-aprobar").classList.add("oculto");
-  $("#descargas").classList.remove("oculto");
+    ? `✓ Aprobado a las ${hora}, con ${rojos} ${rojos === 1 ? "cosa" : "cosas"} en rojo sin corregir.`
+    : `✓ Aprobado a las ${hora}. Listo para cargar a su sistema.`;
+  ponerBarra("aprobado");
+  import(SHEETJS).catch(() => {}); // se precarga para que la descarga de Excel sea inmediata
+  const cierre = $("#paso-3");
+  cierre.classList.remove("oculto");
+  cierre.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ---------------- Recorrido automático (para mostrar en una reunión) ----------------
+
+class Detenido extends Error {}
+
+async function pausa(ms) {
+  const fin = Date.now() + ms;
+  while (Date.now() < fin) {
+    if (!estado.recorrido) throw new Detenido();
+    await new Promise((ok) => setTimeout(ok, Math.min(150, fin - Date.now())));
+  }
+  if (!estado.recorrido) throw new Detenido();
+}
+
+function avisoRecorrido(texto) {
+  $("#recorrido-texto").textContent = texto;
+}
+
+// Muestra dónde se va a tocar, y toca
+async function tocar(el, { clic = true, espera = 700 } = {}) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  await pausa(espera);
+  el.classList.add("recorrido-toque");
+  await pausa(650);
+  el.classList.remove("recorrido-toque");
+  if (clic) el.click();
+}
+
+async function recorrido() {
+  if (estado.recorrido) return;
+  estado.recorrido = true;
+  $("#recorrido-banda").classList.remove("oculto");
+  document.body.classList.add("en-recorrido");
+  try {
+    avisoRecorrido("1 de 5 · Elegimos un pedido que llegó por WhatsApp");
+    if (estado.modo !== "pedido") cambiarModo("pedido");
+    const ej = EJEMPLOS.pedido.find((e) => e.tipo === "chat");
+    await tocar(document.querySelector(`[data-archivo="${ej.archivo}"]`), { clic: false, espera: 900 });
+    await elegirEjemplo(ej);
+    await pausa(2600);
+
+    avisoRecorrido("2 de 5 · Fuyu lo lee");
+    await tocar($("#btn-leer-doc"), { clic: false });
+    await leerConFuyu();
+    if ($("#paso-2").classList.contains("oculto")) throw new Error("No se pudo leer el ejemplo.");
+    await pausa(1800);
+
+    avisoRecorrido("3 de 5 · Tocamos una fila y se marca de dónde salió");
+    const filas = [...document.querySelectorAll("#revision .fila")];
+    const fila = filas[Math.min(2, filas.length - 1)];
+    if (fila) {
+      await tocar(fila, { clic: false });
+      elegirFila(Number(fila.dataset.linea), { verDocumento: true });
+      if (!enCelular()) $("#rev-documento").scrollIntoView({ behavior: "smooth", block: "center" });
+      await pausa(3200);
+      if (enCelular()) { cambiarPestana("tabla"); await pausa(600); }
+    }
+
+    avisoRecorrido("4 de 5 · Corregimos lo marcado en un toque");
+    for (let n = 0; n < 12; n++) {
+      const boton = document.querySelector("#alertas .aviso-boton.principal")
+        || [...document.querySelectorAll("#alertas .aviso-boton")].find((b) => b.textContent === "Dejar así");
+      if (!boton) break;
+      await tocar(boton);
+      await pausa(900);
+    }
+
+    avisoRecorrido("5 de 5 · Aprobamos y descargamos para el sistema");
+    await tocar($("#btn-aprobar"));
+    if (!$("#btn-aprobar-igual").classList.contains("oculto")) await tocar($("#btn-aprobar-igual"));
+    await pausa(1200);
+    await tocar($("#btn-excel"), { clic: false, espera: 300 });
+    await pausa(800);
+    $("#paso-3").scrollIntoView({ behavior: "smooth", block: "center" });
+    avisoRecorrido("Listo. Así se vería con sus propios pedidos.");
+    await pausa(4000);
+  } catch (e) {
+    if (!(e instanceof Detenido)) mensaje(e.message || "El recorrido no pudo terminar.", "error");
+  } finally {
+    estado.recorrido = false;
+    document.body.classList.remove("en-recorrido");
+    $("#recorrido-banda").classList.add("oculto");
+  }
 }
 
 function filasExportacion() {
@@ -1081,7 +1213,20 @@ async function descargar(tipo) {
     bajar(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }), `${base}.csv`);
     return;
   }
-  const XLSX = await import(SHEETJS);
+  const boton = $("#btn-excel");
+  const textoBoton = boton.textContent;
+  boton.textContent = "Preparando Excel…";
+  boton.disabled = true;
+  let XLSX;
+  try {
+    XLSX = await import(SHEETJS);
+  } catch {
+    mensaje("No se pudo preparar el Excel. Revise su internet o descargue el CSV.", "error");
+    return;
+  } finally {
+    boton.textContent = textoBoton;
+    boton.disabled = false;
+  }
   const hoja = XLSX.utils.json_to_sheet(filas);
   const libro = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(libro, hoja, estado.modo === "pedido" ? "Pedido" : "Factura");

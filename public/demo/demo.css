@@ -422,3 +422,48 @@ h1, h2, h3 { color: var(--tinta); line-height: 1.25; margin: 0; }
 .texto-leido { margin-top: 18px; border-top: 1px solid var(--borde); padding-top: 12px; }
 .texto-leido summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--suave); }
 .texto-leido pre { white-space: pre-wrap; word-break: break-word; font-size: 13px; max-height: 320px; overflow: auto; background: var(--fondo); padding: 10px; border-radius: 8px; }
+
+/* ---------- Barra fija para aprobar y descargar ---------- */
+.barra-aprobar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: var(--blanco); border-top: 1px solid var(--borde);
+    box-shadow: 0 -6px 18px rgba(10, 31, 68, 0.08);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    display: flex; align-items: center; justify-content: center; gap: 10px 18px; flex-wrap: wrap;
+}
+.ba-estado { margin: 0; font-size: 15px; font-weight: 600; color: var(--tinta); }
+.barra-aprobar[data-modo="confirmar"] .ba-estado { color: var(--rojo); }
+.barra-aprobar[data-modo="aprobado"] .ba-estado { color: var(--verde); }
+.ba-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.ba-acciones .boton { min-height: 48px; }
+body.con-barra { padding-bottom: 92px; }
+@media (max-width: 640px) {
+    .barra-aprobar { flex-direction: column; align-items: stretch; gap: 8px; }
+    .ba-estado { text-align: center; font-size: 14px; }
+    .ba-acciones { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+    .ba-acciones .boton { padding: 10px 8px; font-size: 15px; }
+    body.con-barra { padding-bottom: 140px; }
+}
+
+/* ---------- Cierre después de aprobar ---------- */
+.cierre-aprobado { text-align: center; padding: 28px 20px; border: 2px solid var(--verde); }
+.cierre-aprobado:focus { outline: none; }
+.cierre-ok { margin: 0 0 12px; display: inline-block; background: var(--verde-fondo); color: var(--verde); font-weight: 700; padding: 6px 14px; border-radius: 999px; font-size: 15px; }
+.cierre-aprobado h2 { font-size: 24px; }
+.cierre-pregunta { margin: 6px 0 18px; font-size: 20px; color: var(--tinta); font-weight: 600; }
+.boton.grande-wa { min-height: 58px; font-size: 18px; padding: 14px 28px; }
+.cierre-numero { margin: 14px 0 4px; font-size: 15px; color: var(--texto); }
+
+/* ---------- Recorrido automático ---------- */
+.recorrido-boton { margin-top: 14px; font-size: 15px; font-weight: 600; padding: 6px 0; }
+.recorrido-banda {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 50;
+    display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px);
+    background: var(--tinta); color: #fff; border-radius: 999px; padding: 8px 10px 8px 16px;
+    box-shadow: 0 8px 24px rgba(10, 31, 68, 0.25); font-size: 14px; font-weight: 600;
+}
+.recorrido-banda .boton.enlace { color: #fff; font-size: 14px; padding: 4px 8px; }
+.recorrido-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--naranja); flex: none; animation: ad-latido 1s ease-in-out infinite; }
+@keyframes ad-latido { 50% { opacity: .3; transform: scale(.7); } }
+.recorrido-toque { outline: 3px solid var(--naranja) !important; outline-offset: 3px; box-shadow: 0 0 0 8px rgba(255, 145, 0, 0.25) !important; transition: box-shadow .2s; }
+@media (prefers-reduced-motion: reduce) { .recorrido-punto { animation: none; } }
