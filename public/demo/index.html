@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo · Pedidos y documentos sin digitar · Fuyu</title>
+    <meta name="description" content="Pruebe cómo Fuyu lee un pedido o una factura, lo revisa contra el catálogo de la finca y lo deja listo para cargar al sistema.">
+    <link rel="icon" href="../assets/fuyudatoslogo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+    <header class="barra">
+        <a href="/" class="marca">
+            <img src="../assets/fuyudatoslogo.png" alt="" width="32" height="32">
+            <span>Fuyu</span>
+        </a>
+        <a href="/" class="volver">Volver al inicio</a>
+    </header>
+
+    <main class="contenedor">
+        <section class="intro">
+            <p class="etiqueta">Demo en vivo</p>
+            <h1>Pedidos y facturas sin digitar</h1>
+            <p class="bajada">Suba un pedido o una factura. Fuyu lo lee, lo revisa contra el catálogo de la finca y le deja una tabla para corregir, aprobar y cargar a su sistema.</p>
+
+            <div class="tiempo" aria-label="Comparación de tiempo">
+                <div><span class="tiempo-etq">Tiempo a mano</span><strong>~8 min</strong></div>
+                <div class="tiempo-sep" aria-hidden="true"></div>
+                <div><span class="tiempo-etq">Con Fuyu</span><strong>~1 min <small>+ revisión</small></strong></div>
+            </div>
+            <p class="letra-chica">Cifras de ejemplo, solo ilustrativas: no son una medición en una finca.</p>
+
+            <p class="aviso" role="note">
+                <strong>No suba información confidencial.</strong> Use los ejemplos o documentos de prueba. Nada se guarda: el documento se lee y se descarta.
+            </p>
+        </section>
+
+        <!-- Paso 1 -->
+        <section class="tarjeta" id="paso-1">
+            <h2><span class="num">1</span> ¿Qué documento quiere probar?</h2>
+
+            <div class="modos" role="tablist">
+                <button class="modo activo" role="tab" aria-selected="true" data-modo="pedido">
+                    <strong>Pedido de un cliente</strong>
+                    <span>Correo, WhatsApp, PDF o Excel</span>
+                </button>
+                <button class="modo" role="tab" aria-selected="false" data-modo="factura">
+                    <strong>Factura de proveedor</strong>
+                    <span>Insumos, cartón, transporte</span>
+                </button>
+            </div>
+
+            <h3 class="subtitulo">Elija un ejemplo</h3>
+            <div class="ejemplos" id="ejemplos"></div>
+
+            <details class="propio" id="propio">
+                <summary>O use su propio documento de prueba</summary>
+                <div class="propio-cuerpo">
+                    <label class="campo-texto" id="bloque-texto">
+                        <span>Pegue el texto del correo o del WhatsApp</span>
+                        <textarea id="texto" rows="6" placeholder="Ej.: Hola, para el viernes necesito 10 cajas HB de Freedom 60 cm…"></textarea>
+                    </label>
+                    <div class="subir">
+                        <label class="boton secundario" for="archivo">Elegir archivo</label>
+                        <input type="file" id="archivo" accept=".pdf,.xlsx,.xls,.csv,.txt,image/*" hidden>
+                        <span id="nombre-archivo" class="nombre-archivo">PDF, Excel o foto · máximo 2 MB</span>
+                    </div>
+                    <button class="boton primario" id="btn-leer">Leer documento</button>
+                </div>
+            </details>
+
+            <p class="estado" id="estado" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- Paso 2 -->
+        <section class="tarjeta oculto" id="paso-2">
+            <h2><span class="num">2</span> Revise y corrija</h2>
+            <p class="ayuda">Los datos ya vienen ordenados. Lo marcado en <span class="pill rojo">rojo</span> hay que corregirlo; lo marcado en <span class="pill amarillo">amarillo</span> conviene revisarlo. Puede editar cualquier casilla.</p>
+
+            <div class="resumen-alertas" id="resumen-alertas"></div>
+
+            <details class="original" id="original">
+                <summary>Ver el documento original</summary>
+                <div id="original-cuerpo"></div>
+            </details>
+
+            <div id="revision"></div>
+        </section>
+
+        <!-- Paso 3 -->
+        <section class="tarjeta oculto" id="paso-3">
+            <h2><span class="num">3</span> Apruebe y descargue</h2>
+            <p class="ayuda">Nada se carga sin que una persona lo apruebe. Al aprobar, se habilita el archivo para cargar al sistema de la finca.</p>
+            <button class="boton primario ancho" id="btn-aprobar">Aprobar</button>
+            <div class="descargas oculto" id="descargas">
+                <p class="aprobado" id="texto-aprobado">Aprobado.</p>
+                <button class="boton primario" id="btn-excel">Descargar para cargar al sistema (Excel)</button>
+                <button class="boton secundario" id="btn-csv">Descargar en CSV</button>
+                <p class="letra-chica">Columnas genéricas de importación. En un proyecto real se ajustan al formato de su sistema (Komet, Unosof, AS2 o su Excel).</p>
+            </div>
+        </section>
+
+        <section class="cierre">
+            <h2>¿Le sirve para su finca?</h2>
+            <p>Hacemos esto con sus pedidos y sus documentos, sobre el sistema que ya usa.</p>
+            <a class="boton whatsapp" id="btn-whatsapp" target="_blank" rel="noopener"
+               href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20prob%C3%A9%20la%20demo%20de%20pedidos%20y%20documentos%20sin%20digitar%20y%20quiero%20esto%20con%20los%20pedidos%20de%20mi%20finca.">
+                Quiero esto con mis pedidos
+            </a>
+            <p class="contacto">WhatsApp +593 939008880 · iafuyutech@gmail.com · Cayambe</p>
+        </section>
+    </main>
+
+    <footer class="pie">
+        Los documentos y la finca “Rosas del Valle (ejemplo)” son ficticios.
+    </footer>
+
+    <script type="module" src="demo.js"></script>
+</body>
+</html>

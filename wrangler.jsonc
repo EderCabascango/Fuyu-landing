@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Debe coincidir con el nombre del Worker en Cloudflare (fuyu.fuyudatos.workers.dev)
+  "name": "fuyu",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+
+  // Archivos del sitio. Solo /api/* pasa por el código del Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Configuración editable sin tocar código.
+  // La clave GROQ_API_KEY NO va aquí: es un secreto (ver README).
+  "vars": {
+    "GROQ_MODELO_TEXTO": "openai/gpt-oss-120b",
+    "GROQ_MODELO_VISION": "qwen/qwen3.8-27b",
+    "GROQ_URL": "https://api.groq.com/openai/v1",
+    "TAMANO_MAXIMO_BYTES": "2097152"
+  },
+
+  // Límite de uso de la demo por IP, con el limitador de Cloudflare (no guarda nada).
+  // Cloudflare solo acepta ventanas de 10 o 60 segundos.
+  "ratelimits": [
+    { "name": "LIMITADOR", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
+  ],
+
+  "observability": { "enabled": true }
+}

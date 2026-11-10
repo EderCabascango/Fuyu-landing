@@ -1,0 +1,2 @@
+# Copie este archivo como .dev.vars (no se sube al repo) y ponga su clave de Groq.
+GROQ_API_KEY=gsk_su_clave_aqui
