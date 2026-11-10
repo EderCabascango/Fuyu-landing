@@ -788,7 +788,8 @@ function fraseResumen(pendientes) {
       else sinPrecio++;
     }
     const fecha = fechaLarga(d.fecha_entrega);
-    const partes = [`${variedades} ${variedades === 1 ? "variedad" : "variedades"}`, `${miles(tallos)} tallos`];
+    const partes = [`${variedades} ${variedades === 1 ? "variedad" : "variedades"}`];
+    if (tallos > 0) partes.push(`${miles(tallos)} tallos`);
     if (valor > 0) partes.push(`${dinero(valor)}${sinPrecio ? ` (sin contar ${sinPrecio === 1 ? "1 línea sin precio" : `${sinPrecio} líneas sin precio`})` : ""}`);
     return `Pedido ${d.cliente ? `de ${d.cliente}` : "sin cliente"}${fecha ? ` para el ${fecha}` : ""}: ${partes.join(", ")}. ${cola}`;
   }

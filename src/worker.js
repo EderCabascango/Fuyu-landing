@@ -75,6 +75,8 @@ function instrucciones(modo, hoy) {
       " Cada combinación de variedad y largo es una línea. Copia el nombre de la variedad tal cual está escrito. " +
       "El largo va en centímetros como número (\"60cm\" → 60). " +
       "\"HB\" es half box, \"QB\" quarter box, \"FB\" full box. " +
+      "Si el pedido dice una sola vez un dato que vale para todas las líneas (por ejemplo \"bonches de 25\", " +
+      "\"las HB de 10 bonches\" o un precio para varias variedades), aplícalo a cada línea a la que se refiere. " +
       "En total_tallos_declarado pon solo el total de tallos que el pedido escribe para esa línea; si no lo escribe, null. " +
       "El cliente es la empresa que compra (por ejemplo \"Bloomfield Wholesale Inc.\"), no la persona que escribe; " +
       "usa el nombre de la persona solo si no aparece ninguna empresa. La empresa suele estar en el encabezado, " +
