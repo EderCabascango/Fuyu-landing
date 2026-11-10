@@ -310,7 +310,7 @@ async function prepararArchivo(archivo) {
 
   if (nombre.endsWith(".pdf")) {
     const lib = await cargarPdfjs();
-    const pdf = await lib.getDocument({ data: await archivo.arrayBuffer() }).promise;
+    const pdf = await lib.getDocument({ data: await archivo.arrayBuffer(), isEvalSupported: false }).promise;
     const paginas = await dibujarPaginas(pdf);
     const texto = await textoDelPDF(pdf);
     if (texto.replace(/\s/g, "").length >= 40) return { contenido: { texto }, vista: { tipo: "pdf", paginas } };
@@ -1257,7 +1257,8 @@ async function descargar(tipo) {
   if (tipo === "csv") {
     const cols = Object.keys(filas[0] || {});
     const esc = (v) => {
-      const s = v === null || v === undefined ? "" : String(v);
+      let s = v === null || v === undefined ? "" : String(v);
+      if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const csv = [cols.join(","), ...filas.map((f) => cols.map((c) => esc(f[c])).join(","))].join("\r\n");

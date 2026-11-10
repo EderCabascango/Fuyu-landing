@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="componentes/antes-despues.css">
     <link rel="stylesheet" href="index.css">
-    <script>document.documentElement.classList.add('js');</script>
+    <script src="js-activo.js"></script>
 </head>
 <body>
 
@@ -229,13 +229,6 @@
 </footer>
 
 <script src="index.js"></script>
-<script type="module">
-    import { montarAntesDespues, EJEMPLO_CORREO_ERRORES } from "./componentes/antes-despues.js";
-    montarAntesDespues(document.getElementById("animacion-portada"), EJEMPLO_CORREO_ERRORES, {
-        etiqueta: "Ejemplo con datos ficticios",
-        columnas: ["variedad", "cajas", "tallos", "precio"],
-        enlace: { href: "/demo/", texto: "Pruébelo con un pedido de ejemplo →" },
-    });
-</script>
+<script type="module" src="inicio.js"></script>
 </body>
 </html>

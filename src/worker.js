@@ -135,7 +135,12 @@ function instrucciones(modo, hoy) {
 function respuesta(datos, estado = 200, extra = {}) {
   return new Response(JSON.stringify(datos), {
     status: estado,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      ...extra,
+    },
   });
 }
 
@@ -259,24 +264,27 @@ async function procesar(request, env) {
   if (imagenes.length > MAX_IMAGENES) return error(`Máximo ${MAX_IMAGENES} páginas o fotos por documento.`, 400);
   if (!texto && imagenes.length === 0) return error("No llegó ningún contenido para leer.", 400);
 
+  // Límites por IP (ráfaga de 10 s y por minuto): cuentan todos los envíos, también los inválidos
+  const ip = request.headers.get("cf-connecting-ip") || "local";
+  const limitar = async (limitador, clave, aviso) => {
+    if (!limitador) return null;
+    const { success } = await limitador.limit({ key: clave });
+    return success ? null : respuesta({ ok: false, error: aviso }, 429, { "retry-after": "60" });
+  };
+  const frenoIp =
+    (await limitar(env.LIMITE_RAFAGA, ip, "Espere unos segundos antes de enviar otro documento.")) ||
+    (await limitar(env.LIMITADOR, ip, "Llegó al límite de documentos por minuto en la demo. Espere un minuto e intente de nuevo."));
+  if (frenoIp) return frenoIp;
+
   // Si viene como texto, se revisa sin gastar tokens que parezca un pedido o una factura
   if (texto && imagenes.length === 0) {
     const problema = revisarTipo(modo, texto);
     if (problema) return respuesta({ ok: false, error: problema.mensaje, sugerido: problema.sugerido }, 422);
   }
 
-  // Límites de uso: por IP (ráfaga de 10 s y por minuto) y para toda la demo (por minuto)
-  const ip = request.headers.get("cf-connecting-ip") || "local";
-  const limites = [
-    [env.LIMITE_RAFAGA, ip, "Espere unos segundos antes de enviar otro documento."],
-    [env.LIMITADOR, ip, "Llegó al límite de documentos por minuto en la demo. Espere un minuto e intente de nuevo."],
-    [env.LIMITE_GLOBAL, "toda-la-demo", "La demo está muy solicitada en este momento. Intente de nuevo en un minuto."],
-  ];
-  for (const [limitador, clave, aviso] of limites) {
-    if (!limitador) continue;
-    const { success } = await limitador.limit({ key: clave });
-    if (!success) return respuesta({ ok: false, error: aviso }, 429, { "retry-after": "60" });
-  }
+  // Límite de toda la demo: solo para lo que de verdad va a Groq
+  const frenoGlobal = await limitar(env.LIMITE_GLOBAL, "toda-la-demo", "La demo está muy solicitada en este momento. Intente de nuevo en un minuto.");
+  if (frenoGlobal) return frenoGlobal;
 
   // Reserva de la cuota diaria de Groq
   const reserva = Number(env.RESERVA_GROQ || 100);
