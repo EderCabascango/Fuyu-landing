@@ -97,18 +97,6 @@ async function iniciar() {
   $("#btn-excel").addEventListener("click", () => descargar("xlsx"));
   $("#btn-csv").addEventListener("click", () => descargar("csv"));
   pintarEjemplos();
-
-  // Enlace directo a un ejemplo: /demo/?ejemplo=pedido_con_errores.txt
-  const pedido = new URLSearchParams(location.search).get("ejemplo");
-  if (pedido) {
-    const modo = Object.keys(EJEMPLOS).find((m) => EJEMPLOS[m].some((e) => e.archivo === pedido));
-    if (modo) {
-      cambiarModo(modo);
-      leerEjemplo(EJEMPLOS[modo].find((e) => e.archivo === pedido)).then(() => {
-        if (new URLSearchParams(location.search).has("original")) $("#original").open = true;
-      });
-    }
-  }
 }
 
 function cambiarModo(modo) {
