@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo · Pedidos y documentos sin digitar · Fuyu</title>
-    <meta name="description" content="Pruebe cómo Fuyu lee un pedido o una factura, lo revisa contra el catálogo de la finca y lo deja listo para cargar al sistema.">
+    <title>Demo · Pedidos sin digitar · Fuyu</title>
+    <meta name="description" content="Pruebe cómo Fuyu pasa un pedido de WhatsApp, correo o PDF a una tabla lista para revisar y cargar en su sistema.">
     <link rel="icon" href="../assets/fuyudatoslogo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../componentes/antes-despues.css">
     <link rel="stylesheet" href="demo.css">
 </head>
 <body>
@@ -20,87 +21,126 @@
         <a href="/" class="volver">Volver al inicio</a>
     </header>
 
-    <main class="contenedor">
-        <section class="intro">
-            <p class="etiqueta">Demo en vivo</p>
-            <h1>Pedidos y facturas sin digitar</h1>
-            <p class="bajada">Suba un pedido o una factura. Fuyu lo lee, lo revisa contra el catálogo de la finca y le deja una tabla para corregir, aprobar y cargar a su sistema.</p>
-
-            <div class="tiempo" aria-label="Comparación de tiempo">
-                <div><span class="tiempo-etq">Tiempo a mano</span><strong>~8 min</strong></div>
-                <div class="tiempo-sep" aria-hidden="true"></div>
-                <div><span class="tiempo-etq">Con Fuyu</span><strong>~1 min <small>+ revisión</small></strong></div>
+    <!-- Encabezado -->
+    <section class="demo-hero">
+        <div class="demo-hero-texto">
+            <h1>¿Le llegan pedidos por WhatsApp, correo o PDF?</h1>
+            <p class="bajada">Fuyu los pasa a una tabla en segundos. Usted solo revisa lo marcado y lo descarga para su sistema.</p>
+            <div class="hero-acciones">
+                <a class="boton primario" href="#paso-1" id="btn-ir-ejemplos">Probar con un ejemplo</a>
+                <a class="boton secundario" href="#subir" id="btn-ir-subir">Subir mi documento</a>
             </div>
-            <p class="letra-chica">Cifras de ejemplo, solo ilustrativas: no son una medición en una finca.</p>
+            <button class="boton enlace recorrido-boton" id="btn-recorrido" type="button">▶ Ver recorrido automático</button>
+        </div>
+        <div class="demo-hero-animacion" id="animacion-demo" aria-label="Ejemplo animado: un pedido de WhatsApp pasa a una tabla"></div>
+    </section>
 
-            <p class="aviso" role="note">
-                <strong>No suba información confidencial.</strong> Use los ejemplos o documentos de prueba. Nada se guarda: el documento se lee y se descarta.
-            </p>
-        </section>
+    <!-- Pasos, fijos arriba -->
+    <nav class="pasos" id="pasos" aria-label="Pasos de la demo">
+        <ol>
+            <li data-paso="1" class="activo"><span class="pasos-num">1</span><span class="pasos-txt">Elija o suba un pedido</span><span class="pasos-corto" aria-hidden="true">Elija</span></li>
+            <li data-paso="2"><span class="pasos-num">2</span><span class="pasos-txt">Fuyu lo lee</span><span class="pasos-corto" aria-hidden="true">Fuyu lee</span></li>
+            <li data-paso="3"><span class="pasos-num">3</span><span class="pasos-txt">Usted revisa y descarga</span><span class="pasos-corto" aria-hidden="true">Revise</span></li>
+        </ol>
+    </nav>
 
+    <main class="contenedor">
         <!-- Paso 1 -->
         <section class="tarjeta" id="paso-1">
-            <h2><span class="num">1</span> ¿Qué documento quiere probar?</h2>
-
-            <div class="modos" role="tablist">
-                <button class="modo activo" role="tab" aria-selected="true" data-modo="pedido">
-                    <strong>Pedido de un cliente</strong>
-                    <span>Correo, WhatsApp, PDF o Excel</span>
-                </button>
-                <button class="modo" role="tab" aria-selected="false" data-modo="factura">
-                    <strong>Factura de proveedor</strong>
-                    <span>Insumos, cartón, transporte</span>
-                </button>
+            <div class="modos" role="tablist" aria-label="Tipo de documento">
+                <button class="modo activo" role="tab" aria-selected="true" data-modo="pedido">Pedido de un cliente</button>
+                <button class="modo" role="tab" aria-selected="false" data-modo="factura">Factura de proveedor</button>
             </div>
 
-            <h3 class="subtitulo">Elija un ejemplo</h3>
+            <h2 class="paso-titulo">Elija un ejemplo</h2>
             <div class="ejemplos" id="ejemplos"></div>
 
-            <details class="propio" id="propio">
-                <summary>O use su propio documento de prueba</summary>
-                <div class="propio-cuerpo">
-                    <label class="campo-texto" id="bloque-texto">
-                        <span>Pegue el texto del correo o del WhatsApp</span>
-                        <textarea id="texto" rows="6" placeholder="Ej.: Hola, para el viernes necesito 10 cajas HB de Freedom 60 cm…"></textarea>
-                    </label>
-                    <div class="subir">
-                        <label class="boton secundario" for="archivo">Elegir archivo</label>
-                        <input type="file" id="archivo" accept=".pdf,.xlsx,.xls,.csv,.txt,image/*" hidden>
-                        <span id="nombre-archivo" class="nombre-archivo">PDF, Excel o foto · máximo 2 MB</span>
+            <div class="vista-previa oculto" id="vista-previa" tabindex="-1">
+                <div class="vp-cab">
+                    <div>
+                        <p class="vp-etiqueta">Así llegó</p>
+                        <h3 id="vp-titulo">Documento</h3>
                     </div>
-                    <button class="boton primario" id="btn-leer">Leer documento</button>
+                    <button class="boton enlace" id="vp-cerrar" type="button">Elegir otro</button>
                 </div>
-            </details>
+                <div class="documento" id="vp-documento"></div>
+                <button class="boton primario grande" id="btn-leer-doc" type="button">Leer este pedido con Fuyu</button>
+            </div>
+
+            <div class="subir" id="subir">
+                <h2 class="paso-titulo">O suba su documento</h2>
+                <label class="soltar" id="soltar" for="archivo" tabindex="0">
+                    <span class="soltar-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 16V4m0 0-5 5m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+                    </span>
+                    <strong>Arrastre aquí su archivo o toque para elegirlo</strong>
+                    <span id="soltar-formatos">PDF, Excel, foto o texto · máximo 2 MB</span>
+                </label>
+                <input type="file" id="archivo" accept=".pdf,.xlsx,.xls,.csv,.txt,image/*" hidden>
+                <details class="pegar" id="bloque-texto">
+                    <summary>¿Lo tiene como texto? Péguelo aquí</summary>
+                    <textarea id="texto" rows="6" placeholder="Ej.: Hola, para el viernes necesito 10 cajas HB de Freedom 60 cm…"></textarea>
+                    <button class="boton secundario" id="btn-ver-texto" type="button">Ver el pedido</button>
+                </details>
+                <p class="nota-confidencial">Use documentos de prueba. Nada se guarda.</p>
+            </div>
 
             <p class="estado" id="estado" role="status" aria-live="polite"></p>
         </section>
 
-        <!-- Paso 2 -->
-        <section class="tarjeta oculto" id="paso-2">
-            <h2><span class="num">2</span> Revise y corrija</h2>
-            <p class="ayuda">Los datos ya vienen ordenados. Lo marcado en <span class="pill rojo">rojo</span> hay que corregirlo; lo marcado en <span class="pill amarillo">amarillo</span> conviene revisarlo. Puede editar cualquier casilla.</p>
-
-            <div class="resumen-alertas" id="resumen-alertas"></div>
-
-            <details class="original" id="original">
-                <summary>Ver el documento original</summary>
-                <div id="original-cuerpo"></div>
-            </details>
-
-            <div id="revision"></div>
+        <!-- Leyendo -->
+        <section class="tarjeta oculto" id="leyendo" aria-live="polite">
+            <h2 class="paso-titulo" id="leyendo-titulo">Fuyu está leyendo su pedido</h2>
+            <ol class="etapas" id="etapas">
+                <li data-etapa="1">Leyendo el documento</li>
+                <li data-etapa="2" id="etapa-2">Buscando cliente, fecha y variedades</li>
+                <li data-etapa="3" id="etapa-3">Revisando contra el catálogo de la finca</li>
+                <li data-etapa="4">Listo</li>
+            </ol>
+            <p class="reloj"><span id="reloj">0,0</span> s</p>
         </section>
 
-        <!-- Paso 3 -->
-        <section class="tarjeta oculto" id="paso-3">
-            <h2><span class="num">3</span> Apruebe y descargue</h2>
-            <p class="ayuda">Nada se carga sin que una persona lo apruebe. Al aprobar, se habilita el archivo para cargar al sistema de la finca.</p>
-            <button class="boton primario ancho" id="btn-aprobar">Aprobar</button>
-            <div class="descargas oculto" id="descargas">
-                <p class="aprobado" id="texto-aprobado">Aprobado.</p>
-                <button class="boton primario" id="btn-excel">Descargar para cargar al sistema (Excel)</button>
-                <button class="boton secundario" id="btn-csv">Descargar en CSV</button>
-                <p class="letra-chica">Columnas genéricas de importación. En un proyecto real se ajustan al formato de su sistema (Komet, Unosof, AS2 o su Excel).</p>
+        <!-- Revisión -->
+        <section class="tarjeta oculto" id="paso-2">
+            <h2 class="paso-titulo">Revise lo marcado</h2>
+            <p class="tiempo-lectura" id="tiempo-lectura"></p>
+            <p class="resumen-frase" id="resumen-frase"></p>
+
+            <div class="pestanas" role="tablist" aria-label="Ver documento o tabla">
+                <button class="pestana" role="tab" aria-selected="false" data-pestana="documento" type="button">Documento</button>
+                <button class="pestana activa" role="tab" aria-selected="true" data-pestana="tabla" type="button">Tabla</button>
             </div>
+
+            <div class="revision-grid" id="revision-grid" data-pestana="tabla">
+                <div class="col-doc">
+                    <p class="col-titulo">Así llegó</p>
+                    <div class="documento" id="rev-documento"></div>
+                </div>
+                <div class="col-tabla">
+                    <div class="alertas" id="alertas"></div>
+                    <p class="pista oculto" id="pista">Toque una celda amarilla para corregirla. <button class="boton enlace" id="pista-ok" type="button">Entendido</button></p>
+                    <div id="revision"></div>
+                </div>
+            </div>
+
+            <details class="texto-leido" id="texto-leido">
+                <summary>Ver el texto que leyó Fuyu</summary>
+                <pre id="texto-leido-cuerpo"></pre>
+            </details>
+        </section>
+
+        <!-- Cierre después de aprobar -->
+        <section class="tarjeta oculto cierre-aprobado" id="paso-3" tabindex="-1">
+            <p class="cierre-ok" id="texto-aprobado">Aprobado.</p>
+            <h2>Así se vería con sus propios pedidos.</h2>
+            <p class="cierre-pregunta">¿Lo vemos en 20 minutos?</p>
+            <a class="boton whatsapp grande-wa" target="_blank" rel="noopener"
+               href="https://wa.me/593939008880?text=Hola%20Fuyu%2C%20prob%C3%A9%20la%20demo%20y%20quiero%20ver%20c%C3%B3mo%20se%20ver%C3%ADa%20con%20mis%20pedidos.%20%C2%BFAgendamos%2020%20minutos%3F">
+                <svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a.9.9 0 0 0-.7.3 2.8 2.8 0 0 0-.9 2.1 4.9 4.9 0 0 0 1 2.6 11.2 11.2 0 0 0 4.3 3.8c1.6.7 2.2.7 3 .6a2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .1-1.2c0-.2-.2-.2-.4-.3Z"/></svg>
+                Escribir por WhatsApp
+            </a>
+            <p class="cierre-numero">WhatsApp 0939 008 880 · iafuyutech@gmail.com</p>
+            <p class="letra-chica">Los archivos traen columnas genéricas de importación. En un proyecto real se ajustan al formato de su sistema (Komet, Unosof, AS2 o su Excel).</p>
         </section>
 
         <section class="cierre">
@@ -114,10 +154,35 @@
         </section>
     </main>
 
+    <div class="barra-aprobar oculto" id="barra-aprobar" role="region" aria-label="Aprobar y descargar">
+        <p class="ba-estado" id="ba-estado"></p>
+        <div class="ba-acciones">
+            <button class="boton primario" id="btn-aprobar" type="button">Aprobar</button>
+            <button class="boton secundario oculto" id="btn-seguir" type="button">Seguir revisando</button>
+            <button class="boton primario oculto" id="btn-aprobar-igual" type="button">Aprobar igual</button>
+            <button class="boton primario oculto" id="btn-excel" type="button">Descargar Excel</button>
+            <button class="boton secundario oculto" id="btn-csv" type="button">Descargar CSV para su sistema</button>
+        </div>
+    </div>
+
+    <div class="recorrido-banda oculto" id="recorrido-banda" role="status" aria-live="polite">
+        <span class="recorrido-punto" aria-hidden="true"></span>
+        <span id="recorrido-texto">Recorrido automático</span>
+        <button class="boton enlace" id="recorrido-detener" type="button">Detener</button>
+    </div>
+
     <footer class="pie">
         Los documentos y la finca “Rosas del Valle (ejemplo)” son ficticios.
     </footer>
 
+    <script type="module">
+        import { montarAntesDespues, EJEMPLO_WHATSAPP } from "../componentes/antes-despues.js";
+        montarAntesDespues(document.getElementById("animacion-demo"), EJEMPLO_WHATSAPP, {
+            etiqueta: "Ejemplo",
+            columnas: ["variedad", "largo", "cajas", "tallos", "precio"],
+            tiempos: { linea: 400, lectura: 550, pausaLectura: 400, resultado: 2600 },
+        });
+    </script>
     <script type="module" src="demo.js"></script>
 </body>
 </html>

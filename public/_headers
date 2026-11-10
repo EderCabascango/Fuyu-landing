@@ -1,0 +1,3 @@
+# Los ejemplos de texto se sirven con su codificación correcta
+/demo/ejemplos/*.txt
+  Content-Type: text/plain; charset=utf-8

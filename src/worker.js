@@ -31,6 +31,7 @@ const ESQUEMA_PEDIDO = objeto({
       total_tallos_declarado: { ...num, description: "Solo si el pedido escribe un total de tallos para la línea" },
       precio_tallo: { ...num, description: "Precio por tallo en USD, si viene" },
       notas: txt,
+      fuente: { ...txt, description: "Copia literal y exacta del pedazo del documento del que sale esta línea" },
     }),
   },
   observaciones: txt,
@@ -48,6 +49,7 @@ const ESQUEMA_FACTURA = objeto({
       cantidad: num,
       precio_unitario: num,
       subtotal_linea: num,
+      fuente: { ...txt, description: "Copia literal y exacta del pedazo del documento del que sale este ítem" },
     }),
   },
   subtotal: num,
@@ -61,7 +63,10 @@ function instrucciones(modo, hoy) {
     `Hoy es ${hoy}. Extrae los datos exactamente como aparecen en el documento. ` +
     "No inventes nada: si un dato no está, usa null. No corrijas errores ni recalcules totales: " +
     "copia los números que están escritos, aunque no cuadren. Las fechas van en formato AAAA-MM-DD; " +
-    "si falta el año, usa el próximo año en que caiga esa fecha a partir de hoy.";
+    "si falta el año, usa el próximo año en que caiga esa fecha a partir de hoy. " +
+    "En cada línea, el campo fuente es una copia literal del texto del documento del que sale esa línea: " +
+    "los mismos caracteres, sin traducir, sin corregir y sin agregar nada, de máximo 120 caracteres " +
+    "(por ejemplo la fila de la tabla o el mensaje donde aparece). Si viene de una imagen, copia lo que se lee.";
   if (modo === "pedido") {
     return (
       "Lees pedidos que importadores de flores envían a una finca de rosas en Ecuador " +
@@ -70,9 +75,12 @@ function instrucciones(modo, hoy) {
       " Cada combinación de variedad y largo es una línea. Copia el nombre de la variedad tal cual está escrito. " +
       "El largo va en centímetros como número (\"60cm\" → 60). " +
       "\"HB\" es half box, \"QB\" quarter box, \"FB\" full box. " +
+      "Si el pedido dice una sola vez un dato que vale para todas las líneas (por ejemplo \"bonches de 25\", " +
+      "\"las HB de 10 bonches\" o un precio para varias variedades), aplícalo a cada línea a la que se refiere. " +
       "En total_tallos_declarado pon solo el total de tallos que el pedido escribe para esa línea; si no lo escribe, null. " +
       "El cliente es la empresa que compra (por ejemplo \"Bloomfield Wholesale Inc.\"), no la persona que escribe; " +
-      "usa el nombre de la persona solo si no aparece ninguna empresa. " +
+      "usa el nombre de la persona solo si no aparece ninguna empresa. La empresa suele estar en el encabezado, " +
+      "en la firma o en la primera fila de una hoja de cálculo. " +
       "El mercado es solo el país de destino, escrito en español (por ejemplo \"Estados Unidos\", \"Países Bajos\", \"Rusia\"), sin la ciudad."
     );
   }

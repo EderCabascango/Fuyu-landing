@@ -1,4 +1,4 @@
-import { validarPedido, validarFactura, totalTallosCalculado } from "./validaciones.js";
+import { validarPedido, validarFactura, totalTallosCalculado, buscarVariedad, dinero, miles } from "./validaciones.js";
 
 const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 const PDFJS_WORKER = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
@@ -7,18 +7,19 @@ const SHEETJS = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_PAGINAS_IMAGEN = 3;
 
+// tipo: cómo se dibuja la miniatura. dificultad: qué tiene de difícil.
 const EJEMPLOS = {
   pedido: [
-    { archivo: "pedido_correo_ingles.txt", formato: "CORREO", titulo: "Correo en inglés", detalle: "Importador de Miami, EE. UU." },
-    { archivo: "pedido_tabla.pdf", formato: "PDF", titulo: "Orden de compra en PDF", detalle: "Importador de Moscú, tabla por variedad" },
-    { archivo: "pedido_excel.xlsx", formato: "EXCEL", titulo: "Pedido en Excel", detalle: "Mayorista de Países Bajos" },
-    { archivo: "pedido_whatsapp.txt", formato: "WHATSAPP", titulo: "WhatsApp desordenado", detalle: "Varios mensajes, con abreviaturas" },
-    { archivo: "pedido_con_errores.txt", formato: "CORREO", titulo: "Pedido con errores", detalle: "Una variedad que no existe y una suma mal hecha", error: true },
+    { archivo: "pedido_correo_ingles.txt", tipo: "correo", titulo: "Correo en inglés", dificultad: "En inglés, con cajas HB y QB" },
+    { archivo: "pedido_whatsapp.txt", tipo: "chat", titulo: "WhatsApp de un cliente", dificultad: "Mensajes sueltos, abreviaturas y una corrección a la mitad" },
+    { archivo: "pedido_tabla.pdf", tipo: "pdf", titulo: "Orden de compra en PDF", dificultad: "Tabla de un importador de Moscú, con totales por línea" },
+    { archivo: "pedido_excel.xlsx", tipo: "excel", titulo: "Pedido en Excel", dificultad: "Datos del cliente arriba, tabla abajo y notas sueltas" },
+    { archivo: "pedido_con_errores.txt", tipo: "correo", titulo: "Pedido con errores", dificultad: "Una variedad que no existe y una suma mal hecha", error: true },
   ],
   factura: [
-    { archivo: "factura_cartonera.pdf", formato: "PDF", titulo: "Factura de cartón", detalle: "Correcta, sin diferencias" },
-    { archivo: "factura_insumos_total_mal.pdf", formato: "PDF", titulo: "Factura de insumos", detalle: "Con el total mal calculado", error: true },
-    { archivo: "factura_frio_escaneada.pdf", formato: "ESCANEO", titulo: "Factura escaneada", detalle: "Servicio técnico, documento en papel" },
+    { archivo: "factura_cartonera.pdf", tipo: "pdf", titulo: "Factura de cartón", dificultad: "Factura limpia: todo debería cuadrar" },
+    { archivo: "factura_insumos_total_mal.pdf", tipo: "pdf", titulo: "Factura de insumos", dificultad: "El total está mal calculado", error: true },
+    { archivo: "factura_frio_escaneada.pdf", tipo: "escaneo", titulo: "Factura escaneada", dificultad: "Papel escaneado, un poco torcido y con firma" },
   ],
 };
 
@@ -31,18 +32,16 @@ const CAMPOS = {
       { k: "mercado", e: "Mercado" },
     ],
     linea: [
-      { k: "variedad", e: "Variedad", ancho: true },
-      { k: "largo_cm", e: "Largo (cm)", n: true },
-      { k: "cajas", e: "Cajas", n: true },
-      { k: "tipo_caja", e: "Tipo de caja" },
-      { k: "bonches_por_caja", e: "Bonches por caja", n: true },
-      { k: "tallos_por_bonche", e: "Tallos por bonche", n: true },
-      { k: "total_tallos_declarado", e: "Tallos según pedido", n: true },
-      { k: "_calculado", e: "Tallos calculados", calc: (l) => fmtEntero(totalTallosCalculado(l)) },
-      { k: "precio_tallo", e: "Precio por tallo", n: true },
+      { k: "variedad", e: "Variedad", tam: 15 },
+      { k: "largo_cm", e: "Largo", n: true, tam: 3 },
+      { k: "cajas", e: "Cajas", n: true, tam: 3 },
+      { k: "tipo_caja", e: "Tipo", tam: 3 },
+      { k: "bonches_por_caja", e: "Bonches por caja", n: true, tam: 3 },
+      { k: "tallos_por_bonche", e: "Tallos por bonche", n: true, tam: 3 },
+      { k: "_calculado", e: "Tallos", calc: true },
+      { k: "precio_tallo", e: "Precio", n: true, tam: 5 },
     ],
-    columnas: "1.6fr .7fr .6fr .7fr .8fr .8fr .9fr .9fr .8fr 32px",
-    nuevaLinea: () => ({ variedad: "", largo_cm: "", cajas: "", tipo_caja: "", bonches_por_caja: "", tallos_por_bonche: "25", total_tallos_declarado: "", precio_tallo: "", notas: "" }),
+    nuevaLinea: () => ({ variedad: "", largo_cm: "", cajas: "", tipo_caja: "", bonches_por_caja: "", tallos_por_bonche: "25", total_tallos_declarado: "", precio_tallo: "", notas: "", fuente: "" }),
   },
   factura: {
     cabecera: [
@@ -52,10 +51,10 @@ const CAMPOS = {
       { k: "fecha", e: "Fecha", ph: "AAAA-MM-DD" },
     ],
     linea: [
-      { k: "descripcion", e: "Descripción", ancho: true },
-      { k: "cantidad", e: "Cantidad", n: true },
-      { k: "precio_unitario", e: "Precio unitario", n: true },
-      { k: "subtotal_linea", e: "Valor", n: true },
+      { k: "descripcion", e: "Descripción", tam: 26 },
+      { k: "cantidad", e: "Cantidad", n: true, tam: 5 },
+      { k: "precio_unitario", e: "Precio unitario", n: true, tam: 6 },
+      { k: "subtotal_linea", e: "Valor", n: true, tam: 7 },
     ],
     totales: [
       { k: "subtotal", e: "Subtotal" },
@@ -63,14 +62,13 @@ const CAMPOS = {
       { k: "iva", e: "IVA ($)" },
       { k: "total", e: "Total" },
     ],
-    columnas: "3fr 1fr 1fr 1fr 32px",
-    nuevaLinea: () => ({ descripcion: "", cantidad: "", precio_unitario: "", subtotal_linea: "" }),
+    nuevaLinea: () => ({ descripcion: "", cantidad: "", precio_unitario: "", subtotal_linea: "", fuente: "" }),
   },
 };
 
 // ---------------- Estado ----------------
 
-const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "" };
+const estado = { modo: "pedido", datos: null, catalogo: null, aprobado: false, nombreDoc: "", preparado: null, ignorados: new Set(), fila: null, recorrido: false };
 const $ = (s) => document.querySelector(s);
 
 const fmtEntero = (n) => (n === null || n === undefined || isNaN(n) ? "—" : Number(n).toLocaleString("es-EC"));
@@ -88,15 +86,53 @@ function mensaje(texto, tipo = "") {
 async function iniciar() {
   estado.catalogo = await fetch("catalogo.json").then((r) => r.json());
   document.querySelectorAll(".modo").forEach((b) => b.addEventListener("click", () => cambiarModo(b.dataset.modo)));
+
+  // Subir archivo: tocar o arrastrar y soltar
+  const soltar = $("#soltar");
   $("#archivo").addEventListener("change", (e) => {
     const f = e.target.files[0];
-    $("#nombre-archivo").textContent = f ? f.name : "PDF, Excel o foto · máximo 2 MB";
+    if (f) usarArchivoPropio(f);
+    e.target.value = "";
   });
-  $("#btn-leer").addEventListener("click", leerPropio);
+  soltar.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#archivo").click(); }
+  });
+  ["dragenter", "dragover"].forEach((ev) => soltar.addEventListener(ev, (e) => { e.preventDefault(); soltar.classList.add("encima"); }));
+  ["dragleave", "drop"].forEach((ev) => soltar.addEventListener(ev, (e) => { e.preventDefault(); soltar.classList.remove("encima"); }));
+  soltar.addEventListener("drop", (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) usarArchivoPropio(f);
+  });
+  $("#btn-ver-texto").addEventListener("click", usarTextoPegado);
+
+  $("#btn-ir-subir").addEventListener("click", (e) => {
+    e.preventDefault();
+    $("#subir").scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => soltar.focus({ preventScroll: true }), 400);
+  });
+  $("#vp-cerrar").addEventListener("click", cerrarVistaPrevia);
+  $("#btn-leer-doc").addEventListener("click", leerConFuyu);
+  document.querySelectorAll(".pestana").forEach((b) => b.addEventListener("click", () => cambiarPestana(b.dataset.pestana)));
+  $("#pista-ok").addEventListener("click", ocultarPista);
   $("#btn-aprobar").addEventListener("click", aprobar);
+  $("#btn-aprobar-igual").addEventListener("click", confirmarAprobacion);
+  $("#btn-seguir").addEventListener("click", () => { ponerBarra("revisar"); $("#alertas").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#btn-recorrido").addEventListener("click", recorrido);
+  $("#recorrido-detener").addEventListener("click", () => { estado.recorrido = false; });
   $("#btn-excel").addEventListener("click", () => descargar("xlsx"));
   $("#btn-csv").addEventListener("click", () => descargar("csv"));
   pintarEjemplos();
+  ponerPaso(1);
+}
+
+function ponerPaso(n) {
+  document.querySelectorAll("#pasos li").forEach((li) => {
+    const p = Number(li.dataset.paso);
+    li.classList.toggle("activo", p === n);
+    li.classList.toggle("hecho", p < n);
+    if (p === n) li.setAttribute("aria-current", "step");
+    else li.removeAttribute("aria-current");
+  });
 }
 
 function cambiarModo(modo) {
@@ -108,12 +144,25 @@ function cambiarModo(modo) {
     b.setAttribute("aria-selected", activo);
   });
   $("#bloque-texto").classList.toggle("oculto", modo === "factura");
-  $("#archivo").value = "";
-  $("#nombre-archivo").textContent = "PDF, Excel o foto · máximo 2 MB";
-  $("#paso-2").classList.add("oculto");
-  $("#paso-3").classList.add("oculto");
+  $("#soltar-formatos").textContent = modo === "factura" ? "PDF o foto de la factura · máximo 2 MB" : "PDF, Excel, foto o texto · máximo 2 MB";
+  cerrarVistaPrevia();
   mensaje("");
   pintarEjemplos();
+}
+
+function miniatura(tipo) {
+  const m = document.createElement("span");
+  m.className = `mini mini-${tipo}`;
+  m.setAttribute("aria-hidden", "true");
+  const html = {
+    correo: `<span class="m-cab"><i></i><i></i></span><i style="width:70%"></i><i style="width:85%"></i><i style="width:55%"></i><i style="width:75%"></i>`,
+    chat: `<span class="m-cab"></span><b></b><b style="width:50%"></b><b class="d"></b><b style="width:70%"></b>`,
+    pdf: `<span class="m-hoja"><i style="width:55%"></i><i style="width:35%"></i><span class="m-tabla"></span><i style="width:40%;margin-left:auto"></i></span>`,
+    excel: `<span class="h"></span><span class="h"></span><span class="h"></span><span class="h"></span>${"<span></span>".repeat(16)}`,
+    escaneo: `<span class="m-hoja"><i style="width:50%"></i><i style="width:70%"></i><i></i><i></i><i style="width:60%"></i><i style="width:35%;margin-left:auto"></i></span>`,
+  };
+  m.innerHTML = html[tipo] || html.correo;
+  return m;
 }
 
 function pintarEjemplos() {
@@ -122,37 +171,45 @@ function pintarEjemplos() {
   for (const ej of EJEMPLOS[estado.modo]) {
     const b = document.createElement("button");
     b.className = "ejemplo";
-    b.innerHTML = `<span class="formato"></span><span class="ejemplo-texto"><strong></strong><span></span></span>`;
-    b.querySelector(".formato").textContent = ej.formato;
-    b.querySelector("strong").textContent = ej.titulo;
-    const det = b.querySelector(".ejemplo-texto span");
-    det.textContent = ej.detalle;
-    if (ej.error) det.classList.add("marca-error");
-    b.addEventListener("click", () => leerEjemplo(ej));
+    b.type = "button";
+    b.dataset.archivo = ej.archivo;
+    const texto = document.createElement("span");
+    texto.className = "ejemplo-texto";
+    const t = document.createElement("strong");
+    t.textContent = ej.titulo;
+    const d = document.createElement("span");
+    d.textContent = ej.dificultad;
+    if (ej.error) d.classList.add("marca-error");
+    texto.append(t, d);
+    b.append(miniatura(ej.tipo), texto);
+    b.addEventListener("click", () => elegirEjemplo(ej));
     cont.appendChild(b);
   }
 }
 
 function bloquear(si) {
-  document.querySelectorAll(".ejemplo, #btn-leer, .modo").forEach((b) => (b.disabled = si));
-  if (si) {
-    // Un documento nuevo reemplaza la revisión anterior
-    $("#paso-2").classList.add("oculto");
-    $("#paso-3").classList.add("oculto");
-  }
+  document.querySelectorAll(".ejemplo, #btn-leer-doc, .modo, #btn-ver-texto").forEach((b) => (b.disabled = si));
 }
 
-// ---------------- Lectura de archivos en el navegador ----------------
+function ocultarRevision() {
+  $("#paso-2").classList.add("oculto");
+  $("#paso-3").classList.add("oculto");
+  mostrarBarra(false);
+}
 
-async function leerEjemplo(ej) {
+// ---------------- Elegir y ver el documento ----------------
+
+async function elegirEjemplo(ej) {
   try {
     bloquear(true);
     mensaje("Abriendo el ejemplo…", "cargando");
     const r = await fetch(`ejemplos/${ej.archivo}`);
     if (!r.ok) throw new Error("No se pudo abrir el ejemplo.");
     const blob = await r.blob();
-    const archivo = new File([blob], ej.archivo, { type: blob.type });
-    await procesarArchivo(archivo, `ejemplos/${ej.archivo}`);
+    const preparado = await prepararArchivo(new File([blob], ej.archivo, { type: blob.type }));
+    document.querySelectorAll(".ejemplo").forEach((b) => b.classList.toggle("elegido", b.dataset.archivo === ej.archivo));
+    mostrarVistaPrevia(ej.titulo, preparado);
+    mensaje("");
   } catch (e) {
     mensaje(e.message, "error");
   } finally {
@@ -160,16 +217,14 @@ async function leerEjemplo(ej) {
   }
 }
 
-async function leerPropio() {
-  const archivo = $("#archivo").files[0];
-  const texto = estado.modo === "pedido" ? $("#texto").value.trim() : "";
+async function usarArchivoPropio(archivo) {
   try {
     bloquear(true);
-    if (archivo) await procesarArchivo(archivo, null);
-    else if (texto) {
-      estado.nombreDoc = "texto pegado";
-      await enviar({ texto }, { tipo: "texto", contenido: texto });
-    } else mensaje(estado.modo === "pedido" ? "Pegue un texto o elija un archivo." : "Elija un PDF o una foto de la factura.", "error");
+    mensaje("Abriendo su documento…", "cargando");
+    const preparado = await prepararArchivo(archivo);
+    document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
+    mostrarVistaPrevia(archivo.name, preparado);
+    mensaje("");
   } catch (e) {
     mensaje(e.message, "error");
   } finally {
@@ -177,30 +232,102 @@ async function leerPropio() {
   }
 }
 
-async function procesarArchivo(archivo, enlace) {
+function usarTextoPegado() {
+  const texto = $("#texto").value.trim();
+  if (!texto) return mensaje("Pegue primero el texto del correo o del WhatsApp.", "error");
+  document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
+  mostrarVistaPrevia("Texto pegado", { contenido: { texto }, vista: vistaDeTexto(texto) });
+}
+
+function mostrarVistaPrevia(titulo, preparado) {
+  estado.preparado = preparado;
+  estado.nombreDoc = titulo;
+  ocultarRevision();
+  ponerPaso(1);
+  $("#vp-titulo").textContent = titulo;
+  $("#btn-leer-doc").textContent = estado.modo === "pedido" ? "Leer este pedido con Fuyu" : "Leer esta factura con Fuyu";
+  pintarDocumento(preparado.vista, $("#vp-documento"));
+  const vp = $("#vista-previa");
+  vp.classList.remove("oculto");
+  vp.scrollIntoView({ behavior: "smooth", block: "start" });
+  vp.focus({ preventScroll: true });
+}
+
+function cerrarVistaPrevia() {
+  estado.preparado = null;
+  $("#vista-previa").classList.add("oculto");
+  $("#vp-documento").innerHTML = "";
+  document.querySelectorAll(".ejemplo").forEach((b) => b.classList.remove("elegido"));
+  ocultarRevision();
+  ponerPaso(1);
+}
+
+// ---------------- Preparar el archivo en el navegador ----------------
+
+// Devuelve { contenido: lo que se envía, vista: cómo se muestra en pantalla }
+async function prepararArchivo(archivo) {
   if (archivo.size > MAX_BYTES) throw new Error("El archivo pesa más de 2 MB. Pruebe con uno más liviano.");
-  estado.nombreDoc = archivo.name;
   const nombre = archivo.name.toLowerCase();
-  mensaje("Leyendo el documento…", "cargando");
 
   if (nombre.endsWith(".pdf")) {
-    const { texto, imagenes } = await leerPDF(archivo);
-    if (imagenes) return enviar({ imagenes }, { tipo: "imagenes", contenido: imagenes, enlace, nota: "Documento escaneado: se lee como imagen." });
-    return enviar({ texto }, { tipo: "texto", contenido: texto, enlace });
+    const lib = await cargarPdfjs();
+    const pdf = await lib.getDocument({ data: await archivo.arrayBuffer() }).promise;
+    const paginas = await dibujarPaginas(pdf);
+    const texto = await textoDelPDF(pdf);
+    if (texto.replace(/\s/g, "").length >= 40) return { contenido: { texto }, vista: { tipo: "pdf", paginas } };
+    const imagenes = await imagenesDelPDF(pdf);
+    return { contenido: { imagenes }, vista: { tipo: "pdf", paginas, escaneo: true } };
   }
   if (/\.(xlsx|xls|csv)$/.test(nombre)) {
-    const texto = await leerExcel(archivo);
-    return enviar({ texto }, { tipo: "texto", contenido: texto, enlace });
+    const XLSX = await import(SHEETJS);
+    const libro = XLSX.read(await archivo.arrayBuffer());
+    const texto = libro.SheetNames.map((n) => `Hoja: ${n}\n${XLSX.utils.sheet_to_csv(libro.Sheets[n], { blankrows: false })}`).join("\n\n");
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, blankrows: false, defval: "", raw: false });
+    return { contenido: { texto }, vista: { tipo: "excel", filas, hoja: libro.SheetNames[0] } };
   }
   if (archivo.type.startsWith("image/")) {
     const imagen = await reducirImagen(await createImageBitmap(archivo));
-    return enviar({ imagenes: [imagen] }, { tipo: "imagenes", contenido: [imagen], enlace });
+    return { contenido: { imagenes: [imagen] }, vista: { tipo: "imagen", urls: [imagen] } };
   }
   if (/\.(txt|eml)$/.test(nombre) || archivo.type.startsWith("text/")) {
     const texto = await archivo.text();
-    return enviar({ texto }, { tipo: "texto", contenido: texto, enlace });
+    return { contenido: { texto }, vista: vistaDeTexto(texto) };
   }
   throw new Error("Ese tipo de archivo no se puede leer. Use PDF, Excel, una foto o texto.");
+}
+
+// Reconoce un chat de WhatsApp exportado o un correo; si no, lo muestra como texto
+function vistaDeTexto(texto) {
+  const lineas = texto.replace(/\r/g, "").split("\n");
+  const reChat = /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),\s*(\d{1,2}:\d{2})(?::\d{2})?\]\s*([^:]+):\s*(.*)$/;
+  const mensajes = [];
+  for (const l of lineas) {
+    const m = l.match(reChat);
+    if (m) mensajes.push({ fecha: m[1], hora: m[2], autor: m[3].trim(), texto: m[4] });
+    else if (mensajes.length && l.trim()) mensajes[mensajes.length - 1].texto += `\n${l}`;
+  }
+  if (mensajes.length >= 2) return { tipo: "chat", mensajes };
+
+  const cab = {};
+  let i = 0;
+  const reCab = /^(From|To|Date|Subject|De|Para|Fecha|Asunto|Cc)\s*:\s*(.*)$/i;
+  while (i < lineas.length && reCab.test(lineas[i])) {
+    const [, k, v] = lineas[i].match(reCab);
+    cab[k.toLowerCase()] = v;
+    i++;
+  }
+  if (Object.keys(cab).length >= 2) {
+    return {
+      tipo: "correo",
+      de: cab.from || cab.de || "",
+      para: cab.to || cab.para || "",
+      fecha: cab.date || cab.fecha || "",
+      asunto: cab.subject || cab.asunto || "(sin asunto)",
+      cuerpo: lineas.slice(i).join("\n").trim(),
+    };
+  }
+  return { tipo: "texto", texto };
 }
 
 let pdfjs = null;
@@ -212,10 +339,25 @@ async function cargarPdfjs() {
   return pdfjs;
 }
 
-// Extrae el texto del PDF respetando filas (útil para tablas). Si casi no hay texto, es un escaneo.
-async function leerPDF(archivo) {
-  const lib = await cargarPdfjs();
-  const pdf = await lib.getDocument({ data: await archivo.arrayBuffer() }).promise;
+// Dibuja las páginas (máximo 3) para verlas en pantalla
+async function dibujarPaginas(pdf) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const paginas = [];
+  for (let p = 1; p <= Math.min(pdf.numPages, MAX_PAGINAS_IMAGEN); p++) {
+    const pagina = await pdf.getPage(p);
+    const base = pagina.getViewport({ scale: 1 });
+    const vista = pagina.getViewport({ scale: (760 * dpr) / base.width });
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(vista.width);
+    lienzo.height = Math.round(vista.height);
+    await pagina.render({ canvasContext: lienzo.getContext("2d"), viewport: vista }).promise;
+    paginas.push(lienzo);
+  }
+  return paginas;
+}
+
+// Extrae el texto del PDF respetando filas (útil para tablas)
+async function textoDelPDF(pdf) {
   const paginas = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const pagina = await pdf.getPage(p);
@@ -241,11 +383,11 @@ async function leerPDF(archivo) {
       });
     paginas.push(lineas.join("\n"));
   }
-  const texto = paginas.join("\n\n--- página siguiente ---\n\n");
-  if (texto.replace(/\s/g, "").length >= 40) return { texto };
+  return paginas.join("\n\n--- página siguiente ---\n\n");
+}
 
-  // Escaneo: se convierten las primeras páginas en imagen
-  mensaje("El documento es escaneado; preparando la imagen…", "cargando");
+// Documento escaneado: las primeras páginas se envían como imagen
+async function imagenesDelPDF(pdf) {
   const imagenes = [];
   for (let p = 1; p <= Math.min(pdf.numPages, MAX_PAGINAS_IMAGEN); p++) {
     const pagina = await pdf.getPage(p);
@@ -258,13 +400,7 @@ async function leerPDF(archivo) {
     await pagina.render({ canvasContext: lienzo.getContext("2d"), viewport: vista }).promise;
     imagenes.push(await reducirImagen(lienzo));
   }
-  return { imagenes };
-}
-
-async function leerExcel(archivo) {
-  const XLSX = await import(SHEETJS);
-  const libro = XLSX.read(await archivo.arrayBuffer());
-  return libro.SheetNames.map((n) => `Hoja: ${n}\n${XLSX.utils.sheet_to_csv(libro.Sheets[n], { blankrows: false })}`).join("\n\n");
+  return imagenes;
 }
 
 // Reduce la imagen a un tamaño razonable para no superar el límite de 2 MB
@@ -285,32 +421,177 @@ async function reducirImagen(fuente, maximo = 1700) {
   return c.toDataURL("image/jpeg", 0.45);
 }
 
-// ---------------- Envío al servidor ----------------
+// ---------------- Dibujar el documento como se ve en la vida real ----------------
 
-async function enviar(contenido, vista) {
-  mensaje(contenido.imagenes ? "Leyendo la imagen del documento… (puede tardar unos segundos)" : "Ordenando los datos del documento…", "cargando");
-  const cuerpo = JSON.stringify({ modo: estado.modo, ...contenido });
-  if (new Blob([cuerpo]).size > MAX_BYTES) throw new Error("El documento es demasiado grande para la demo (máximo 2 MB).");
+function nodo(etiqueta, clase, texto) {
+  const e = document.createElement(etiqueta);
+  if (clase) e.className = clase;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+
+function pintarDocumento(vista, cont) {
+  cont.innerHTML = "";
+  if (vista.tipo === "chat") {
+    const autores = [...new Set(vista.mensajes.map((m) => m.autor))];
+    const esFinca = (a) => /rosas del valle|finca/i.test(a);
+    const contacto = autores.find((a) => !esFinca(a)) || autores[0];
+    const chat = nodo("div", "doc-chat");
+    const cab = nodo("div", "doc-chat-cab");
+    cab.append(nodo("span", "doc-chat-avatar", contacto.trim().charAt(0).toUpperCase()), nodo("span", "", contacto));
+    const cuerpo = nodo("div", "doc-chat-cuerpo");
+    if (vista.mensajes[0]?.fecha) cuerpo.append(nodo("span", "doc-chat-dia", vista.mensajes[0].fecha));
+    for (const m of vista.mensajes) {
+      const b = nodo("p", `burbuja ${esFinca(m.autor) ? "finca" : "cliente"}`);
+      b.append(document.createTextNode(m.texto), nodo("span", "hora", m.hora));
+      cuerpo.append(b);
+    }
+    chat.append(cab, cuerpo);
+    cont.append(chat);
+    return;
+  }
+  if (vista.tipo === "correo") {
+    const c = nodo("article", "doc-correo");
+    const cab = nodo("div", "doc-correo-cab");
+    cab.append(nodo("h4", "doc-correo-asunto", vista.asunto));
+    const dl = nodo("dl", "doc-correo-meta");
+    for (const [k, v] of [["De", vista.de], ["Para", vista.para], ["Fecha", vista.fecha]]) {
+      if (!v) continue;
+      dl.append(nodo("dt", "", k), nodo("dd", "", v));
+    }
+    cab.append(dl);
+    c.append(cab, nodo("div", "doc-correo-cuerpo", vista.cuerpo));
+    cont.append(c);
+    return;
+  }
+  if (vista.tipo === "pdf") {
+    const caja = nodo("div", "doc-pdf");
+    for (const original of vista.paginas) {
+      const copia = document.createElement("canvas");
+      copia.width = original.width;
+      copia.height = original.height;
+      copia.getContext("2d").drawImage(original, 0, 0);
+      copia.setAttribute("role", "img");
+      copia.setAttribute("aria-label", "Página del documento");
+      caja.append(copia);
+    }
+    cont.append(caja);
+    return;
+  }
+  if (vista.tipo === "excel") {
+    const caja = nodo("div", "doc-excel");
+    const t = nodo("table");
+    const filas = vista.filas.slice(0, 15);
+    const ncol = Math.max(...filas.map((f) => f.length), 1);
+    const thead = nodo("thead");
+    const trh = nodo("tr");
+    trh.append(nodo("th", "", ""));
+    for (let c = 0; c < ncol; c++) trh.append(nodo("th", "", String.fromCharCode(65 + c)));
+    thead.append(trh);
+    const tbody = nodo("tbody");
+    filas.forEach((f, i) => {
+      const tr = nodo("tr");
+      tr.append(nodo("th", "", String(i + 1)));
+      for (let c = 0; c < ncol; c++) tr.append(nodo("td", "", f[c] ?? ""));
+      tbody.append(tr);
+    });
+    t.append(thead, tbody);
+    caja.append(t, nodo("p", "doc-excel-pie", `Hoja “${vista.hoja}”${vista.filas.length > 15 ? " · primeras 15 filas" : ""}`));
+    cont.append(caja);
+    return;
+  }
+  if (vista.tipo === "imagen") {
+    const caja = nodo("div", "doc-pdf");
+    for (const src of vista.urls) {
+      const img = nodo("img");
+      img.src = src;
+      img.alt = "Foto del documento";
+      caja.append(img);
+    }
+    cont.append(caja);
+    return;
+  }
+  cont.append(nodo("div", "doc-texto", vista.texto));
+}
+
+// ---------------- Leer con Fuyu: etapas reales y tiempo ----------------
+
+function etapa(n, estadoEtapa) {
+  const li = document.querySelector(`#etapas li[data-etapa="${n}"]`);
+  li.classList.remove("activa", "hecha", "fallo");
+  if (estadoEtapa) li.classList.add(estadoEtapa);
+}
+
+async function leerConFuyu() {
+  if (!estado.preparado) return;
+  const { contenido, vista } = estado.preparado;
+  const esPedido = estado.modo === "pedido";
+  bloquear(true);
+  ocultarRevision();
+  mensaje("");
+  ponerPaso(2);
+
+  $("#leyendo-titulo").textContent = esPedido ? "Fuyu está leyendo su pedido" : "Fuyu está leyendo su factura";
+  $("#etapa-2").textContent = esPedido ? "Buscando cliente, fecha y variedades" : "Buscando proveedor, RUC y valores";
+  $("#etapa-3").textContent = esPedido ? "Revisando contra el catálogo de la finca" : "Revisando sumas, IVA y RUC";
+  [1, 2, 3, 4].forEach((n) => etapa(n, null));
+  const seccion = $("#leyendo");
+  seccion.classList.remove("oculto");
+  seccion.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const inicio = performance.now();
-  let r;
-  try {
-    r = await fetch("/api/procesar", { method: "POST", headers: { "content-type": "application/json" }, body: cuerpo });
-  } catch {
-    throw new Error("No hay conexión con el servidor. Revise su internet e intente de nuevo.");
-  }
-  const j = await r.json().catch(() => ({ ok: false, error: "Respuesta inesperada del servidor." }));
-  if (!j.ok) throw new Error(j.error || "No se pudo leer el documento.");
+  const segundos = () => ((performance.now() - inicio) / 1000).toLocaleString("es-EC", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const reloj = setInterval(() => ($("#reloj").textContent = segundos()), 100);
+  let enCurso = 1;
 
-  const segundos = ((performance.now() - inicio) / 1000).toFixed(1);
-  estado.datos = normalizarDatos(j.datos);
-  estado.aprobado = false;
-  mostrarOriginal(vista);
-  pintarRevision();
-  mensaje(`Listo: documento leído en ${segundos} segundos. Revise los datos abajo.`);
-  $("#paso-2").classList.remove("oculto");
-  $("#paso-3").classList.remove("oculto");
-  $("#paso-2").scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    // 1. El documento ya se leyó en el navegador; se prepara y se envía
+    etapa(1, "activa");
+    const cuerpo = JSON.stringify({ modo: estado.modo, ...contenido });
+    if (new Blob([cuerpo]).size > MAX_BYTES) throw new Error("El documento es demasiado grande para la demo (máximo 2 MB).");
+    const peticion = fetch("/api/procesar", { method: "POST", headers: { "content-type": "application/json" }, body: cuerpo });
+    etapa(1, "hecha");
+
+    // 2. Fuyu busca los datos (espera la respuesta del servidor)
+    enCurso = 2;
+    etapa(2, "activa");
+    let r;
+    try { r = await peticion; } catch { throw new Error("No hay conexión con el servidor. Revise su internet e intente de nuevo."); }
+    const j = await r.json().catch(() => ({ ok: false, error: "Respuesta inesperada del servidor." }));
+    if (!j.ok) throw new Error(j.error || "No se pudo leer el documento.");
+    etapa(2, "hecha");
+
+    // 3. Reglas fijas contra el catálogo
+    enCurso = 3;
+    etapa(3, "activa");
+    estado.datos = normalizarDatos(j.datos);
+    estado.ignorados = new Set();
+    estado.fila = null;
+    estado.aprobado = false;
+    problemasActuales();
+    await new Promise((ok) => setTimeout(ok, 350)); // para que la etapa se alcance a ver
+    etapa(3, "hecha");
+
+    etapa(4, "hecha");
+    clearInterval(reloj);
+    const total = segundos();
+    $("#reloj").textContent = total;
+    await new Promise((ok) => setTimeout(ok, 500));
+
+    mostrarRevision(vista, contenido, total);
+    seccion.classList.add("oculto");
+    ponerPaso(3);
+    $("#paso-2").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    clearInterval(reloj);
+    etapa(enCurso, "fallo");
+    seccion.classList.add("oculto");
+    ponerPaso(1);
+    mensaje(e.message, "error");
+    $("#estado").scrollIntoView({ behavior: "smooth", block: "center" });
+  } finally {
+    bloquear(false);
+  }
 }
 
 // Todos los valores se manejan como texto en las casillas
@@ -322,6 +603,11 @@ function normalizarDatos(d) {
   salida.lineas = (d[claveLineas] || []).map((l) => {
     const fila = conf.nuevaLinea();
     for (const k of Object.keys(fila)) fila[k] = aTexto(l[k]);
+    // Si la variedad es del catálogo (aunque venga en minúsculas o sin tildes), se escribe como en el catálogo
+    if ("variedad" in fila && fila.variedad) {
+      const { exacta } = buscarVariedad(fila.variedad, estado.catalogo);
+      if (exacta) fila.variedad = exacta.nombre;
+    }
     return fila;
   });
   return salida;
@@ -332,67 +618,67 @@ function paraValidar() {
   return estado.modo === "pedido" ? d : { ...d, items: d.lineas };
 }
 
-function mostrarOriginal(vista) {
-  const cuerpo = $("#original-cuerpo");
-  cuerpo.innerHTML = "";
-  if (vista.nota) {
-    const p = document.createElement("p");
-    p.className = "letra-chica";
-    p.textContent = vista.nota;
-    cuerpo.appendChild(p);
-  }
-  if (vista.tipo === "texto") {
-    const pre = document.createElement("pre");
-    pre.textContent = vista.contenido;
-    cuerpo.appendChild(pre);
-  } else {
-    for (const src of vista.contenido) {
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = "Documento original";
-      cuerpo.appendChild(img);
-    }
-  }
-  if (vista.enlace) {
-    const a = document.createElement("a");
-    a.href = vista.enlace;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = "Abrir el archivo original";
-    cuerpo.appendChild(a);
-  }
-  $("#original").open = false;
+// Problemas que siguen pendientes (los que el usuario dejó así no cuentan)
+function problemasActuales() {
+  const todos = estado.modo === "pedido" ? validarPedido(paraValidar(), estado.catalogo) : validarFactura(paraValidar());
+  return todos.filter((p) => !estado.ignorados.has(p.clave));
 }
 
 // ---------------- Pantalla de revisión ----------------
 
-function crearCampo(def, valor, alCambiar, extra = {}) {
-  const etq = document.createElement("label");
-  etq.className = `campo${def.ancho ? " ancho-completo" : ""}`;
-  const span = document.createElement("span");
-  span.textContent = def.e;
-  etq.appendChild(span);
-  if (def.calc) {
-    const div = document.createElement("div");
-    div.className = "calculado";
-    div.dataset.calc = def.k;
-    etq.appendChild(div);
-    return etq;
-  }
+function mostrarRevision(vista, contenido, segundos) {
+  const esPedido = estado.modo === "pedido";
+  $("#tiempo-lectura").textContent = `Fuyu leyó ${esPedido ? "este pedido" : "esta factura"} en ${segundos} s`;
+  pintarDocumento(vista, $("#rev-documento"));
+  const texto = contenido.texto || "";
+  $("#texto-leido").classList.toggle("oculto", !texto);
+  $("#texto-leido").open = false;
+  $("#texto-leido-cuerpo").textContent = texto;
+  cambiarPestana("tabla");
+  pintarRevision();
+  $("#paso-2").classList.remove("oculto");
+  $("#paso-3").classList.add("oculto");
+  mostrarBarra(true);
+  ponerBarra("revisar");
+}
+
+function pistaYaVista() {
+  try { return localStorage.getItem("fuyu-pista") === "1"; } catch { return false; }
+}
+
+function ocultarPista() {
+  $("#pista").classList.add("oculto");
+  try { localStorage.setItem("fuyu-pista", "1"); } catch {}
+}
+
+function cambiarPestana(cual) {
+  $("#revision-grid").dataset.pestana = cual;
+  document.querySelectorAll(".pestana").forEach((b) => {
+    const activa = b.dataset.pestana === cual;
+    b.classList.toggle("activa", activa);
+    b.setAttribute("aria-selected", activa);
+  });
+}
+
+const enCelular = () => window.matchMedia("(max-width: 899px)").matches;
+
+function crearInput(def, valor, linea) {
   const inp = document.createElement("input");
   inp.value = valor;
   inp.dataset.campo = def.k;
-  if (extra.linea !== undefined) inp.dataset.linea = extra.linea;
+  if (linea !== null) inp.dataset.linea = linea;
   if (def.n) inp.inputMode = "decimal";
   if (def.ph) inp.placeholder = def.ph;
-  inp.setAttribute("aria-label", def.e);
+  if (def.tam) inp.size = def.tam;
+  inp.setAttribute("aria-label", linea !== null ? `${def.e}, línea ${linea + 1}` : def.e);
   inp.addEventListener("input", () => {
-    alCambiar(inp.value);
+    if (linea !== null) estado.datos.lineas[linea][def.k] = inp.value;
+    else estado.datos[def.k] = inp.value;
+    ocultarPista();
     desaprobar();
     actualizarAlertas();
   });
-  etq.appendChild(inp);
-  return etq;
+  return inp;
 }
 
 function pintarRevision() {
@@ -401,214 +687,495 @@ function pintarRevision() {
   const cont = $("#revision");
   cont.innerHTML = "";
 
-  const t1 = document.createElement("h3");
-  t1.className = "seccion-titulo";
-  t1.textContent = estado.modo === "pedido" ? "Datos del pedido" : "Datos de la factura";
-  cont.appendChild(t1);
-
+  // Datos generales
   const cab = document.createElement("div");
   cab.className = `encabezado ${estado.modo}`;
-  for (const def of conf.cabecera) cab.appendChild(crearCampo(def, d[def.k] ?? "", (v) => (d[def.k] = v)));
-  cont.appendChild(cab);
-
-  const t2 = document.createElement("h3");
-  t2.className = "seccion-titulo";
-  t2.textContent = estado.modo === "pedido" ? "Líneas del pedido" : "Ítems";
-  cont.appendChild(t2);
-
-  const tabla = document.createElement("div");
-  tabla.className = "lineas";
-  tabla.style.setProperty("--columnas", conf.columnas);
-
-  const encab = document.createElement("div");
-  encab.className = "cabecera-tabla";
-  for (const def of conf.linea) {
-    const s = document.createElement("span");
-    s.textContent = def.e;
-    encab.appendChild(s);
+  for (const def of conf.cabecera) {
+    const etq = document.createElement("label");
+    etq.className = "campo";
+    etq.append(nodo("span", "", def.e), crearInput(def, d[def.k] ?? "", null));
+    cab.append(etq);
   }
-  encab.appendChild(document.createElement("span"));
-  tabla.appendChild(encab);
+  cont.append(cab);
 
+  // Tabla editable
+  const envoltura = nodo("div", "tabla-envoltura");
+  const tabla = nodo("table", "tabla-rev");
+  const thead = nodo("thead");
+  const trh = nodo("tr");
+  for (const def of conf.linea) trh.append(nodo("th", def.n || def.calc ? "num" : "", def.e));
+  trh.append(nodo("th", "", ""));
+  thead.append(trh);
+  const tbody = nodo("tbody");
   d.lineas.forEach((l, i) => {
-    const fila = document.createElement("div");
-    fila.className = "linea";
-    fila.dataset.indice = i;
+    const tr = nodo("tr", "fila");
+    tr.dataset.linea = i;
+    for (const def of conf.linea) {
+      const td = nodo("td", def.n || def.calc ? "num" : "");
+      td.dataset.etiqueta = def.e;
+      if (def.calc) {
+        td.append(nodo("span", "calculado"));
+        td.dataset.calc = def.k;
+      } else td.append(crearInput(def, l[def.k] ?? "", i));
+      tr.append(td);
+    }
+    const tdq = nodo("td", "quitar");
+    const q = nodo("button", "boton-quitar", "✕");
+    q.type = "button";
+    q.setAttribute("aria-label", `Quitar línea ${i + 1}`);
+    q.addEventListener("click", (e) => { e.stopPropagation(); quitarLinea(i); });
+    tdq.append(q);
+    tr.append(tdq);
+    tr.addEventListener("click", () => elegirFila(i));
+    tr.addEventListener("focusin", () => elegirFila(i, { sinCambiarPestana: true }));
+    tbody.append(tr);
 
-    const top = document.createElement("div");
-    top.className = "linea-cab";
-    top.innerHTML = `<span>${estado.modo === "pedido" ? "Línea" : "Ítem"} ${i + 1}</span>`;
-    const borrar = document.createElement("button");
-    borrar.className = "boton peligro";
-    borrar.textContent = "Quitar";
-    borrar.addEventListener("click", () => quitarLinea(i));
-    top.appendChild(borrar);
-    fila.appendChild(top);
-
-    for (const def of conf.linea) fila.appendChild(crearCampo(def, l[def.k] ?? "", (v) => (l[def.k] = v), { linea: i }));
-
-    const borrar2 = document.createElement("button");
-    borrar2.className = "boton peligro borrar-escritorio";
-    borrar2.textContent = "✕";
-    borrar2.title = "Quitar línea";
-    borrar2.setAttribute("aria-label", `Quitar línea ${i + 1}`);
-    borrar2.addEventListener("click", () => quitarLinea(i));
-    fila.appendChild(borrar2);
-
-    const alertas = document.createElement("ul");
-    alertas.className = "linea-alertas";
-    fila.appendChild(alertas);
-    tabla.appendChild(fila);
+    // Fila con la cita del documento (para PDF, fotos o cuando se pide verla)
+    const trc = nodo("tr", "fila-cita oculto");
+    trc.dataset.cita = i;
+    const tdc = nodo("td");
+    tdc.colSpan = conf.linea.length + 1;
+    trc.append(tdc);
+    tbody.append(trc);
   });
-  cont.appendChild(tabla);
+  tabla.append(thead, tbody);
+  envoltura.append(tabla);
+  cont.append(envoltura);
 
-  const agregar = document.createElement("button");
-  agregar.className = "boton secundario agregar";
-  agregar.textContent = estado.modo === "pedido" ? "Agregar línea" : "Agregar ítem";
+  const agregar = nodo("button", "boton secundario agregar", estado.modo === "pedido" ? "Agregar línea" : "Agregar ítem");
+  agregar.type = "button";
   agregar.addEventListener("click", () => {
     d.lineas.push(conf.nuevaLinea());
     desaprobar();
     pintarRevision();
   });
-  cont.appendChild(agregar);
-
-  const tot = document.createElement("div");
-  tot.className = "totales";
-  tot.id = "totales";
-  cont.appendChild(tot);
+  cont.append(agregar);
 
   if (conf.totales) {
-    const t3 = document.createElement("h3");
-    t3.className = "seccion-titulo";
-    t3.textContent = "Totales de la factura";
-    cont.insertBefore(t3, tot);
-    const grid = document.createElement("div");
-    grid.className = "encabezado factura-totales";
-    for (const def of conf.totales) grid.appendChild(crearCampo({ ...def, n: true }, d[def.k] ?? "", (v) => (d[def.k] = v)));
-    cont.insertBefore(grid, tot);
+    const grid = nodo("div", "encabezado factura-totales");
+    for (const def of conf.totales) {
+      const etq = nodo("label", "campo");
+      etq.append(nodo("span", "", def.e), crearInput({ ...def, n: true }, d[def.k] ?? "", null));
+      grid.append(etq);
+    }
+    cont.append(grid);
   }
-
   actualizarAlertas();
 }
 
 function quitarLinea(i) {
   estado.datos.lineas.splice(i, 1);
+  estado.ignorados = new Set([...estado.ignorados].filter((k) => !/^\d+-/.test(k)));
+  estado.fila = null;
   desaprobar();
   pintarRevision();
 }
 
-function problemasActuales() {
-  return estado.modo === "pedido" ? validarPedido(paraValidar(), estado.catalogo) : validarFactura(paraValidar());
+// ---------------- Resumen en una frase (calculado aquí) ----------------
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+function fechaLarga(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "").trim());
+  return m ? `${Number(m[3])} de ${MESES[Number(m[2]) - 1]}` : null;
 }
 
+function fraseResumen(pendientes) {
+  const d = estado.datos;
+  const k = pendientes.length;
+  const cola = k ? `${k} ${k === 1 ? "cosa" : "cosas"} para revisar.` : "Todo cuadra.";
+  if (estado.modo === "pedido") {
+    const variedades = new Set(d.lineas.map((l) => String(l.variedad).trim().toLowerCase()).filter(Boolean)).size;
+    let tallos = 0, valor = 0, sinPrecio = 0;
+    for (const l of d.lineas) {
+      const t = totalTallosCalculado(l) ?? num(l.total_tallos_declarado) ?? 0;
+      tallos += t;
+      if (num(l.precio_tallo) !== null) valor += t * num(l.precio_tallo);
+      else sinPrecio++;
+    }
+    const fecha = fechaLarga(d.fecha_entrega);
+    const partes = [`${variedades} ${variedades === 1 ? "variedad" : "variedades"}`];
+    if (tallos > 0) partes.push(`${miles(tallos)} tallos`);
+    if (valor > 0) partes.push(`${dinero(valor)}${sinPrecio ? ` (sin contar ${sinPrecio === 1 ? "1 línea sin precio" : `${sinPrecio} líneas sin precio`})` : ""}`);
+    return `Pedido ${d.cliente ? `de ${d.cliente}` : "sin cliente"}${fecha ? ` para el ${fecha}` : ""}: ${partes.join(", ")}. ${cola}`;
+  }
+  const fecha = fechaLarga(d.fecha);
+  const total = num(d.total);
+  const n = d.lineas.length;
+  return `Factura ${d.proveedor ? `de ${d.proveedor}` : "sin proveedor"}${fecha ? ` del ${fecha}` : ""}: ${n} ${n === 1 ? "ítem" : "ítems"}${total !== null ? `, total ${dinero(total)}` : ""}. ${cola}`;
+}
+
+// ---------------- Avisos con arreglo en un toque ----------------
+
 function actualizarAlertas() {
-  const problemas = problemasActuales();
+  const pendientes = problemasActuales();
 
   // Colores en las casillas
   document.querySelectorAll("#revision input").forEach((inp) => {
     const linea = inp.dataset.linea === undefined ? null : Number(inp.dataset.linea);
-    const p = problemas.filter((x) => x.campo === inp.dataset.campo && x.linea === linea);
+    const p = pendientes.filter((x) => x.campo === inp.dataset.campo && x.linea === linea);
     inp.classList.toggle("rojo", p.some((x) => x.nivel === "rojo"));
     inp.classList.toggle("amarillo", !p.some((x) => x.nivel === "rojo") && p.some((x) => x.nivel === "amarillo"));
   });
 
-  // Mensajes bajo cada línea
-  document.querySelectorAll("#revision .linea").forEach((fila) => {
-    const i = Number(fila.dataset.indice);
+  // Tallos calculados y filas con problemas
+  document.querySelectorAll("#revision .fila").forEach((tr) => {
+    const i = Number(tr.dataset.linea);
     const l = estado.datos.lineas[i];
-    const propios = problemas.filter((x) => x.linea === i);
-    const ul = fila.querySelector(".linea-alertas");
-    ul.innerHTML = "";
-    for (const p of propios) {
-      const li = document.createElement("li");
-      li.className = p.nivel;
-      const m = p.mensaje.replace(/^(Línea|Ítem) \d+: /, "");
-      li.textContent = m.charAt(0).toUpperCase() + m.slice(1);
-      ul.appendChild(li);
-    }
-    fila.classList.toggle("con-rojo", propios.some((x) => x.nivel === "rojo"));
-    fila.querySelectorAll("[data-calc]").forEach((el) => {
-      const def = CAMPOS[estado.modo].linea.find((c) => c.k === el.dataset.calc);
-      el.textContent = def.calc(l);
+    const propios = pendientes.filter((x) => x.linea === i);
+    tr.classList.toggle("con-rojo", propios.some((x) => x.nivel === "rojo"));
+    tr.classList.toggle("con-amarillo", !propios.some((x) => x.nivel === "rojo") && propios.some((x) => x.nivel === "amarillo"));
+    tr.querySelectorAll("[data-calc]").forEach((td) => {
+      const span = td.querySelector(".calculado");
+      span.textContent = fmtEntero(totalTallosCalculado(l));
+      const suma = propios.find((x) => x.campo === "total_tallos_declarado");
+      td.classList.toggle("celda-rojo", !!suma);
+      td.querySelector("small")?.remove();
+      if (suma) td.append(nodo("small", "", `el pedido dice ${fmtEntero(num(l.total_tallos_declarado))}`));
     });
   });
 
-  // Resumen arriba
-  const resumen = $("#resumen-alertas");
-  resumen.innerHTML = "";
-  const rojos = problemas.filter((p) => p.nivel === "rojo").length;
-  const amarillos = problemas.length - rojos;
-  if (!problemas.length) {
-    resumen.innerHTML = estado.modo === "pedido"
-      ? `<p class="todo-bien">Todo cuadra con el catálogo y las reglas de la finca. Revise y apruebe.</p>`
-      : `<p class="todo-bien">Todo cuadra: RUC, sumas de los ítems, IVA y total. Revise y apruebe.</p>`;
-  } else {
-    const t = document.createElement("p");
-    t.className = "ayuda";
-    t.innerHTML = `<strong>${problemas.length} ${problemas.length === 1 ? "punto" : "puntos"} por revisar:</strong> ${rojos} en rojo, ${amarillos} en amarillo.`;
-    resumen.appendChild(t);
-    const ul = document.createElement("ul");
-    ul.className = "lista-alertas";
-    for (const p of [...problemas].sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1))) {
-      const li = document.createElement("li");
-      li.className = p.nivel;
-      li.textContent = p.mensaje;
-      ul.appendChild(li);
-    }
-    resumen.appendChild(ul);
-  }
-
-  pintarTotales();
+  // Tarjetas de aviso
+  const cont = $("#alertas");
+  cont.innerHTML = "";
+  const orden = [...pendientes].sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1));
+  for (const p of orden) cont.append(tarjetaAviso(p));
+  $("#resumen-frase").textContent = fraseResumen(pendientes);
+  if (!estado.aprobado && $("#barra-aprobar").dataset.modo === "revisar") $("#ba-estado").textContent = textoPendientes();
+  // La pista sale la primera vez y solo si hay algo marcado para corregir
+  $("#pista").classList.toggle("oculto", pistaYaVista() || pendientes.length === 0);
+  $("#resumen-frase").classList.toggle("con-pendientes", pendientes.length > 0);
 }
 
-function pintarTotales() {
-  const tot = $("#totales");
-  const d = estado.datos;
-  const filas = [];
-  if (estado.modo === "pedido") {
-    let cajas = 0, tallos = 0, valor = 0, conPrecio = false;
-    for (const l of d.lineas) {
-      cajas += num(l.cajas) || 0;
-      const t = totalTallosCalculado(l) ?? num(l.total_tallos_declarado) ?? 0;
-      tallos += t;
-      if (num(l.precio_tallo) !== null) { valor += t * num(l.precio_tallo); conPrecio = true; }
+function tarjetaAviso(p) {
+  const card = nodo("div", `aviso-tarjeta ${p.nivel}`);
+  card.tabIndex = 0;
+  card.append(nodo("p", "aviso-texto", p.mensaje));
+  const acciones = nodo("div", "aviso-acciones");
+  for (const a of p.arreglos) {
+    if (a.tipo === "elegir") {
+      const sel = nodo("select", "aviso-elegir");
+      sel.setAttribute("aria-label", a.texto);
+      sel.append(new Option(a.texto, ""));
+      a.opciones.forEach((o) => sel.append(new Option(o, o)));
+      sel.addEventListener("click", (e) => e.stopPropagation());
+      sel.addEventListener("change", () => sel.value && aplicar({ tipo: "poner", campo: a.campo, linea: a.linea, valor: sel.value }, p));
+      acciones.append(sel);
+      continue;
     }
-    filas.push(["Cajas", fmtEntero(cajas)], ["Tallos", fmtEntero(tallos)]);
-    if (conPrecio) filas.push(["Valor estimado", `$${valor.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]);
-  } else {
-    const suma = d.lineas.reduce((s, l) => s + (num(l.subtotal_linea) || 0), 0);
-    const st = num(d.subtotal) || 0, iva = num(d.iva) || 0;
-    filas.push(["Suma de los ítems", `$${suma.toFixed(2)}`], ["Subtotal + IVA", `$${(st + iva).toFixed(2)}`]);
+    const b = nodo("button", a.tipo === "poner" ? "aviso-boton principal" : "aviso-boton", a.texto);
+    b.type = "button";
+    b.addEventListener("click", (e) => { e.stopPropagation(); aplicar(a, p); });
+    acciones.append(b);
   }
-  tot.innerHTML = "";
-  for (const [k, v] of filas) {
-    const div = document.createElement("div");
-    div.innerHTML = `<span></span><strong></strong>`;
-    div.firstChild.textContent = k;
-    div.lastChild.textContent = v;
-    tot.appendChild(div);
+  card.append(acciones);
+  const seleccionar = () => {
+    if (p.linea !== null) elegirFila(p.linea, { sinCambiarPestana: true });
+    else marcarTextoEnDocumento(estado.datos[p.campo]);
+  };
+  card.addEventListener("click", seleccionar);
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter") seleccionar(); });
+  return card;
+}
+
+function inputDe(campo, linea) {
+  const sel = linea === null ? `#revision input[data-campo="${campo}"]:not([data-linea])` : `#revision input[data-campo="${campo}"][data-linea="${linea}"]`;
+  return document.querySelector(sel);
+}
+
+function aplicar(a, p) {
+  if (a.tipo === "ignorar") {
+    estado.ignorados.add(p.clave);
+    desaprobar();
+    actualizarAlertas();
+    return;
   }
+  if (a.tipo === "ver") {
+    if (p.linea !== null) elegirFila(p.linea, { verDocumento: true });
+    else { if (enCelular()) cambiarPestana("documento"); marcarTextoEnDocumento(estado.datos[p.campo]); }
+    return;
+  }
+  if (a.tipo === "escribir") {
+    cambiarPestana("tabla");
+    const inp = inputDe(a.campo, a.linea);
+    if (inp) { inp.scrollIntoView({ behavior: "smooth", block: "center" }); inp.focus({ preventScroll: true }); }
+    return;
+  }
+  if (a.tipo === "poner") {
+    if (a.linea !== null) estado.datos.lineas[a.linea][a.campo] = a.valor;
+    else estado.datos[a.campo] = a.valor;
+    const inp = inputDe(a.campo, a.linea);
+    if (inp) inp.value = a.valor;
+    ocultarPista();
+    desaprobar();
+    actualizarAlertas();
+    if (a.linea !== null) elegirFila(a.linea, { sinCambiarPestana: true });
+  }
+}
+
+// ---------------- Rastreo: de la fila al documento ----------------
+
+function elegirFila(i, { verDocumento = false, sinCambiarPestana = false } = {}) {
+  estado.fila = i;
+  document.querySelectorAll("#revision .fila").forEach((tr) => tr.classList.toggle("elegida", Number(tr.dataset.linea) === i));
+  document.querySelectorAll("#revision .fila-cita").forEach((tr) => tr.classList.add("oculto"));
+  const fuente = estado.datos.lineas[i]?.fuente || "";
+  const vista = estado.preparado?.vista;
+  const enImagen = vista && (vista.tipo === "pdf" || vista.tipo === "imagen");
+  // En celular, si se pidió ver el documento, primero se cambia de pestaña para poder marcar y bajar hasta el texto
+  if (verDocumento && enCelular() && !enImagen && fuente) cambiarPestana("documento");
+  const encontrado = enImagen ? false : marcarTextoEnDocumento(fuente);
+  if (verDocumento && enCelular() && !encontrado) cambiarPestana("tabla");
+
+  // En PDF o fotos (o en celular) se muestra la cita debajo de la fila
+  if (fuente && (enImagen || (enCelular() && encontrado))) {
+    const trc = document.querySelector(`#revision .fila-cita[data-cita="${i}"]`);
+    const td = trc.querySelector("td");
+    td.innerHTML = "";
+    td.append(nodo("span", "cita-etiqueta", "En el documento dice: "), nodo("q", "", fuente));
+    if (!enImagen && enCelular()) {
+      const b = nodo("button", "boton enlace", "Ver en el documento");
+      b.type = "button";
+      b.addEventListener("click", (e) => { e.stopPropagation(); elegirFila(i, { verDocumento: true }); });
+      td.append(" ", b);
+    }
+    trc.classList.remove("oculto");
+  }
+}
+
+const normalizarLetra = (c) => c.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// Arma el texto visible del documento con un mapa de vuelta a cada nodo de texto
+function mapaDeTexto(raiz, sinPuntuacion) {
+  const recorrido = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  let texto = "";
+  const mapa = [];
+  const agregarEspacio = () => { if (texto && !texto.endsWith(" ")) { texto += " "; mapa.push(null); } };
+  for (let n = recorrido.nextNode(); n; n = recorrido.nextNode()) {
+    if (n.parentElement?.closest(".hora")) continue;
+    for (let k = 0; k < n.data.length; k++) {
+      let c = normalizarLetra(n.data[k]);
+      if (sinPuntuacion && !/[\p{L}\p{N}]/u.test(c)) c = " ";
+      if (/\s/.test(c)) agregarEspacio();
+      else { texto += c; mapa.push([n, k]); }
+    }
+    agregarEspacio();
+  }
+  return { texto, mapa };
+}
+
+function normalizarFragmento(s, sinPuntuacion) {
+  let t = "";
+  for (const ch of String(s)) {
+    let c = normalizarLetra(ch);
+    if (sinPuntuacion && !/[\p{L}\p{N}]/u.test(c)) c = " ";
+    if (/\s/.test(c)) { if (t && !t.endsWith(" ")) t += " "; }
+    else t += c;
+  }
+  return t.trim();
+}
+
+function limpiarMarcas() {
+  if (window.CSS?.highlights) CSS.highlights.delete("fuyu-fuente");
+  document.querySelectorAll(".fuente-marcada").forEach((e) => e.classList.remove("fuente-marcada"));
+}
+
+function llevarAVista(el) {
+  const caja = $("#rev-documento");
+  if (!el || !caja) return;
+  if (enCelular()) { el.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  const delta = el.getBoundingClientRect().top - caja.getBoundingClientRect().top;
+  caja.scrollTo({ top: caja.scrollTop + delta - 40, behavior: "smooth" });
+}
+
+// Marca en el documento el texto citado. Si no lo encuentra, no marca nada.
+function marcarTextoEnDocumento(fragmento) {
+  limpiarMarcas();
+  const raiz = $("#rev-documento");
+  if (!fragmento || !raiz || String(fragmento).trim().length < 3) return false;
+
+  // Excel: se busca la fila completa
+  const excel = raiz.querySelector(".doc-excel");
+  if (excel) {
+    const buscado = normalizarFragmento(fragmento, true);
+    if (buscado.length < 3) return false;
+    for (const tr of excel.querySelectorAll("tbody tr")) {
+      const fila = normalizarFragmento([...tr.querySelectorAll("td")].map((td) => td.textContent).join(" "), true);
+      if (fila && (fila.includes(buscado) || (buscado.includes(fila) && fila.length > 5))) {
+        tr.classList.add("fuente-marcada");
+        llevarAVista(tr);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  for (const sinPuntuacion of [false, true]) {
+    const { texto, mapa } = mapaDeTexto(raiz, sinPuntuacion);
+    const buscado = normalizarFragmento(fragmento, sinPuntuacion);
+    if (buscado.length < 3) continue;
+    const pos = texto.indexOf(buscado);
+    if (pos < 0) continue;
+    let ini = pos, fin = pos + buscado.length - 1;
+    while (ini <= fin && !mapa[ini]) ini++;
+    while (fin >= ini && !mapa[fin]) fin--;
+    if (ini > fin) continue;
+    const rango = document.createRange();
+    rango.setStart(mapa[ini][0], mapa[ini][1]);
+    rango.setEnd(mapa[fin][0], mapa[fin][1] + 1);
+    const elemento = rango.startContainer.parentElement;
+    if (window.CSS?.highlights && window.Highlight) CSS.highlights.set("fuyu-fuente", new Highlight(rango));
+    else elemento.classList.add("fuente-marcada");
+    llevarAVista(elemento);
+    return true;
+  }
+  return false;
 }
 
 // ---------------- Aprobación y descarga ----------------
 
+// ---------------- Barra fija: aprobar y descargar ----------------
+
+function textoPendientes() {
+  const pendientes = problemasActuales();
+  const rojos = pendientes.filter((p) => p.nivel === "rojo").length;
+  if (!pendientes.length) return "Todo cuadra. Listo para aprobar.";
+  if (rojos) return `${pendientes.length} ${pendientes.length === 1 ? "cosa" : "cosas"} para revisar · ${rojos} en rojo`;
+  return `${pendientes.length} ${pendientes.length === 1 ? "cosa" : "cosas"} para revisar`;
+}
+
+function ponerBarra(modo) {
+  const ver = (id, si) => $(id).classList.toggle("oculto", !si);
+  const barra = $("#barra-aprobar");
+  barra.dataset.modo = modo;
+  ver("#btn-aprobar", modo === "revisar");
+  ver("#btn-seguir", modo === "confirmar");
+  ver("#btn-aprobar-igual", modo === "confirmar");
+  ver("#btn-excel", modo === "aprobado");
+  ver("#btn-csv", modo === "aprobado");
+  if (modo === "revisar") $("#ba-estado").textContent = textoPendientes();
+  if (modo === "confirmar") {
+    const rojos = problemasActuales().filter((p) => p.nivel === "rojo").length;
+    $("#ba-estado").textContent = `Quedan ${rojos} ${rojos === 1 ? "cosa" : "cosas"} en rojo. ¿Aprobar igual?`;
+  }
+  if (modo === "aprobado") $("#ba-estado").textContent = "✓ Aprobado. Descargue el archivo para su sistema.";
+}
+
+function mostrarBarra(si) {
+  $("#barra-aprobar").classList.toggle("oculto", !si);
+  document.body.classList.toggle("con-barra", si);
+}
+
 function desaprobar() {
-  if (!estado.aprobado) return;
-  estado.aprobado = false;
-  $("#descargas").classList.add("oculto");
-  $("#btn-aprobar").classList.remove("oculto");
+  if (estado.aprobado) {
+    estado.aprobado = false;
+    $("#paso-3").classList.add("oculto");
+  }
+  if (!$("#barra-aprobar").classList.contains("oculto")) ponerBarra("revisar");
 }
 
 function aprobar() {
   const rojos = problemasActuales().filter((p) => p.nivel === "rojo").length;
-  if (rojos && !confirm(`Quedan ${rojos} ${rojos === 1 ? "punto" : "puntos"} en rojo. ¿Aprobar de todas formas?`)) return;
+  if (rojos) return ponerBarra("confirmar");
+  confirmarAprobacion();
+}
+
+function confirmarAprobacion() {
+  const rojos = problemasActuales().filter((p) => p.nivel === "rojo").length;
   estado.aprobado = true;
   const hora = new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", hour12: false });
   $("#texto-aprobado").textContent = rojos
-    ? `Aprobado a las ${hora}, con ${rojos} ${rojos === 1 ? "punto" : "puntos"} en rojo sin corregir.`
-    : `Aprobado a las ${hora}. Listo para cargar.`;
-  $("#btn-aprobar").classList.add("oculto");
-  $("#descargas").classList.remove("oculto");
+    ? `✓ Aprobado a las ${hora}, con ${rojos} ${rojos === 1 ? "cosa" : "cosas"} en rojo sin corregir.`
+    : `✓ Aprobado a las ${hora}. Listo para cargar a su sistema.`;
+  ponerBarra("aprobado");
+  import(SHEETJS).catch(() => {}); // se precarga para que la descarga de Excel sea inmediata
+  const cierre = $("#paso-3");
+  cierre.classList.remove("oculto");
+  cierre.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ---------------- Recorrido automático (para mostrar en una reunión) ----------------
+
+class Detenido extends Error {}
+
+async function pausa(ms) {
+  const fin = Date.now() + ms;
+  while (Date.now() < fin) {
+    if (!estado.recorrido) throw new Detenido();
+    await new Promise((ok) => setTimeout(ok, Math.min(150, fin - Date.now())));
+  }
+  if (!estado.recorrido) throw new Detenido();
+}
+
+function avisoRecorrido(texto) {
+  $("#recorrido-texto").textContent = texto;
+}
+
+// Muestra dónde se va a tocar, y toca
+async function tocar(el, { clic = true, espera = 700 } = {}) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  await pausa(espera);
+  el.classList.add("recorrido-toque");
+  await pausa(650);
+  el.classList.remove("recorrido-toque");
+  if (clic) el.click();
+}
+
+async function recorrido() {
+  if (estado.recorrido) return;
+  estado.recorrido = true;
+  $("#recorrido-banda").classList.remove("oculto");
+  document.body.classList.add("en-recorrido");
+  try {
+    avisoRecorrido("1 de 5 · Elegimos un pedido que llegó por WhatsApp");
+    if (estado.modo !== "pedido") cambiarModo("pedido");
+    const ej = EJEMPLOS.pedido.find((e) => e.tipo === "chat");
+    await tocar(document.querySelector(`[data-archivo="${ej.archivo}"]`), { clic: false, espera: 900 });
+    await elegirEjemplo(ej);
+    await pausa(2600);
+
+    avisoRecorrido("2 de 5 · Fuyu lo lee");
+    await tocar($("#btn-leer-doc"), { clic: false });
+    await leerConFuyu();
+    if ($("#paso-2").classList.contains("oculto")) throw new Error("No se pudo leer el ejemplo.");
+    await pausa(1800);
+
+    avisoRecorrido("3 de 5 · Tocamos una fila y se marca de dónde salió");
+    const filas = [...document.querySelectorAll("#revision .fila")];
+    const fila = filas[Math.min(2, filas.length - 1)];
+    if (fila) {
+      await tocar(fila, { clic: false });
+      elegirFila(Number(fila.dataset.linea), { verDocumento: true });
+      if (!enCelular()) $("#rev-documento").scrollIntoView({ behavior: "smooth", block: "center" });
+      await pausa(3200);
+      if (enCelular()) { cambiarPestana("tabla"); await pausa(600); }
+    }
+
+    avisoRecorrido("4 de 5 · Corregimos lo marcado en un toque");
+    for (let n = 0; n < 12; n++) {
+      const boton = document.querySelector("#alertas .aviso-boton.principal")
+        || [...document.querySelectorAll("#alertas .aviso-boton")].find((b) => b.textContent === "Dejar así");
+      if (!boton) break;
+      await tocar(boton);
+      await pausa(900);
+    }
+
+    avisoRecorrido("5 de 5 · Aprobamos y descargamos para el sistema");
+    await tocar($("#btn-aprobar"));
+    if (!$("#btn-aprobar-igual").classList.contains("oculto")) await tocar($("#btn-aprobar-igual"));
+    await pausa(1200);
+    await tocar($("#btn-excel"), { clic: false, espera: 300 });
+    await pausa(800);
+    $("#paso-3").scrollIntoView({ behavior: "smooth", block: "center" });
+    avisoRecorrido("Listo. Así se vería con sus propios pedidos.");
+    await pausa(4000);
+  } catch (e) {
+    if (!(e instanceof Detenido)) mensaje(e.message || "El recorrido no pudo terminar.", "error");
+  } finally {
+    estado.recorrido = false;
+    document.body.classList.remove("en-recorrido");
+    $("#recorrido-banda").classList.add("oculto");
+  }
 }
 
 function filasExportacion() {
@@ -646,7 +1213,20 @@ async function descargar(tipo) {
     bajar(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }), `${base}.csv`);
     return;
   }
-  const XLSX = await import(SHEETJS);
+  const boton = $("#btn-excel");
+  const textoBoton = boton.textContent;
+  boton.textContent = "Preparando Excel…";
+  boton.disabled = true;
+  let XLSX;
+  try {
+    XLSX = await import(SHEETJS);
+  } catch {
+    mensaje("No se pudo preparar el Excel. Revise su internet o descargue el CSV.", "error");
+    return;
+  } finally {
+    boton.textContent = textoBoton;
+    boton.disabled = false;
+  }
   const hoja = XLSX.utils.json_to_sheet(filas);
   const libro = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(libro, hoja, estado.modo === "pedido" ? "Pedido" : "Factura");
