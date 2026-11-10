@@ -1,4 +1,5 @@
 import { validarPedido, validarFactura, totalTallosCalculado, buscarVariedad, dinero, miles } from "./validaciones.js";
+import { revisarTipo } from "../componentes/tipo-documento.js";
 
 const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 const PDFJS_WORKER = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
@@ -135,7 +136,7 @@ function ponerPaso(n) {
   });
 }
 
-function cambiarModo(modo) {
+function cambiarModo(modo, { conservarDocumento = false } = {}) {
   if (modo === estado.modo) return;
   estado.modo = modo;
   document.querySelectorAll(".modo").forEach((b) => {
@@ -145,9 +146,45 @@ function cambiarModo(modo) {
   });
   $("#bloque-texto").classList.toggle("oculto", modo === "factura");
   $("#soltar-formatos").textContent = modo === "factura" ? "PDF o foto de la factura · máximo 2 MB" : "PDF, Excel, foto o texto · máximo 2 MB";
+  if (conservarDocumento && estado.preparado) {
+    ocultarRevision();
+    pintarEjemplos();
+    mostrarVistaPrevia(estado.nombreDoc, estado.preparado);
+    return;
+  }
   cerrarVistaPrevia();
   mensaje("");
   pintarEjemplos();
+}
+
+// ---------------- Revisión del tipo de documento (sin gastar tokens) ----------------
+
+const NOMBRE_MODO = { pedido: "Pedido de un cliente", factura: "Factura de proveedor" };
+
+function mostrarAvisoPrevia(texto, sugerido) {
+  const caja = $("#vp-aviso");
+  if (!texto) {
+    caja.classList.add("oculto");
+    $("#btn-leer-doc").disabled = false;
+    return;
+  }
+  $("#vp-aviso-texto").textContent = texto;
+  const cambiar = $("#vp-cambiar");
+  cambiar.classList.toggle("oculto", !sugerido);
+  if (sugerido) {
+    cambiar.textContent = `Cambiar a “${NOMBRE_MODO[sugerido]}”`;
+    cambiar.onclick = () => cambiarModo(sugerido, { conservarDocumento: true });
+  }
+  caja.classList.remove("oculto");
+  $("#btn-leer-doc").disabled = true;
+}
+
+function revisarDocumentoElegido() {
+  const texto = estado.preparado?.contenido?.texto;
+  // Las fotos y los escaneos no tienen texto aquí: los revisa el servidor
+  if (!texto) return mostrarAvisoPrevia(null);
+  const problema = revisarTipo(estado.modo, texto);
+  mostrarAvisoPrevia(problema?.mensaje || null, problema?.sugerido || null);
 }
 
 function miniatura(tipo) {
@@ -189,6 +226,7 @@ function pintarEjemplos() {
 
 function bloquear(si) {
   document.querySelectorAll(".ejemplo, #btn-leer-doc, .modo, #btn-ver-texto").forEach((b) => (b.disabled = si));
+  if (!si && !$("#vp-aviso").classList.contains("oculto")) $("#btn-leer-doc").disabled = true;
 }
 
 function ocultarRevision() {
@@ -247,6 +285,7 @@ function mostrarVistaPrevia(titulo, preparado) {
   $("#vp-titulo").textContent = titulo;
   $("#btn-leer-doc").textContent = estado.modo === "pedido" ? "Leer este pedido con Fuyu" : "Leer esta factura con Fuyu";
   pintarDocumento(preparado.vista, $("#vp-documento"));
+  revisarDocumentoElegido();
   const vp = $("#vista-previa");
   vp.classList.remove("oculto");
   vp.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -558,7 +597,12 @@ async function leerConFuyu() {
     let r;
     try { r = await peticion; } catch { throw new Error("No hay conexión con el servidor. Revise su internet e intente de nuevo."); }
     const j = await r.json().catch(() => ({ ok: false, error: "Respuesta inesperada del servidor." }));
-    if (!j.ok) throw new Error(j.error || "No se pudo leer el documento.");
+    if (!j.ok) {
+      const falla = new Error(j.error || "No se pudo leer el documento.");
+      falla.sugerido = j.sugerido || null;
+      falla.tipo = r.status === 422;
+      throw falla;
+    }
     etapa(2, "hecha");
 
     // 3. Reglas fijas contra el catálogo
@@ -587,8 +631,15 @@ async function leerConFuyu() {
     etapa(enCurso, "fallo");
     seccion.classList.add("oculto");
     ponerPaso(1);
-    mensaje(e.message, "error");
-    $("#estado").scrollIntoView({ behavior: "smooth", block: "center" });
+    if (e.tipo) {
+      // El documento no es del tipo elegido: se avisa junto al documento
+      mensaje("");
+      mostrarAvisoPrevia(e.message, e.sugerido);
+      $("#vista-previa").scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      mensaje(e.message, "error");
+      $("#estado").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   } finally {
     bloquear(false);
   }

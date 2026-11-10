@@ -469,3 +469,14 @@ body.con-barra { padding-bottom: 92px; }
 @keyframes ad-latido { 50% { opacity: .3; transform: scale(.7); } }
 .recorrido-toque { outline: 3px solid var(--naranja) !important; outline-offset: 3px; box-shadow: 0 0 0 8px rgba(255, 145, 0, 0.25) !important; transition: box-shadow .2s; }
 @media (prefers-reduced-motion: reduce) { .recorrido-punto { animation: none; } }
+
+/* ---------- Aviso: el documento no es del tipo elegido ---------- */
+.vp-aviso {
+    margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+    background: var(--rojo-fondo); border: 1.5px solid #f2b8b5;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+}
+.vp-aviso p { margin: 0; flex: 1 1 260px; font-size: 15px; font-weight: 600; color: #8e1c1c; }
+.vp-aviso p::before { content: "✋ "; }
+.vp-aviso .boton { min-height: 42px; }
+#btn-leer-doc:disabled { opacity: .45; cursor: not-allowed; }
