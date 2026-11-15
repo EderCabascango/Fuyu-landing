@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Plataforma · Pedidos y ERP · Fuyu</title>
+    <link rel="icon" href="../assets/fuyudatoslogo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+    <header class="barra">
+        <a class="marca" href="/plataforma/"><img src="../assets/fuyudatoslogo.png" alt="" width="32" height="32"><span>Fuyu · Plataforma</span></a>
+        <div class="barra-der">
+            <span class="etiqueta-demo">Datos de demostración</span>
+            <button class="enlace" id="salir" type="button">Salir</button>
+        </div>
+    </header>
+
+    <main class="contenedor">
+        <section class="kpis" id="kpis" aria-label="Resumen"></section>
+
+        <nav class="pestanas" role="tablist" aria-label="Secciones">
+            <button class="pestana" role="tab" id="t-pedidos" aria-selected="true" data-vista="pedidos">Pedidos</button>
+            <button class="pestana" role="tab" id="t-erp" aria-selected="false" data-vista="erp">ERP</button>
+            <button class="pestana" role="tab" id="t-chats" aria-selected="false" data-vista="chats">Conversaciones del agente</button>
+        </nav>
+
+        <!-- Pedidos -->
+        <section id="vista-pedidos">
+            <div class="seccion-titulo"><h2>Por aprobar</h2><button class="enlace" id="actualizar" type="button">Actualizar</button></div>
+            <p class="nota">Los pedidos que el agente armó por WhatsApp llegan aquí ya validados con precios del ERP. Al <b>aceptar</b>, la flor pasa de “disponible” a “reservada” en su finca y el cliente recibe el aviso por WhatsApp.</p>
+            <div id="pendientes"></div>
+            <div class="seccion-titulo" style="margin-top:22px"><h2>Historial</h2></div>
+            <div class="tarjeta"><div class="tabla-caja" id="historial"></div></div>
+        </section>
+
+        <!-- ERP -->
+        <section id="vista-erp" hidden>
+            <div class="subpestanas" role="tablist" aria-label="ERP">
+                <button class="subpestana" role="tab" aria-selected="true" data-erp="inventario">Inventario</button>
+                <button class="subpestana" role="tab" aria-selected="false" data-erp="movimientos">Movimientos de stock</button>
+                <button class="subpestana" role="tab" aria-selected="false" data-erp="clientes">Clientes</button>
+                <button class="subpestana" role="tab" aria-selected="false" data-erp="auditoria">Auditoría</button>
+            </div>
+            <div class="tarjeta" id="erp-contenido"></div>
+        </section>
+
+        <!-- Conversaciones -->
+        <section id="vista-chats" hidden>
+            <p class="nota">Lo que escribió cada cliente por WhatsApp, lo que respondió el agente y qué herramientas del ERP usó para responder.</p>
+            <div class="chats">
+                <ul class="lista-chats" id="lista-chats"></ul>
+                <div class="chat" id="chat"><p class="vacio">Elija una conversación.</p></div>
+            </div>
+        </section>
+    </main>
+
+    <div class="aviso" id="aviso" role="status" hidden></div>
+    <script src="plataforma.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 // No se guarda ningún documento: el texto o la imagen solo pasa hacia Groq y la respuesta vuelve al navegador.
 
 import { revisarTipo } from "../public/componentes/tipo-documento.js";
+import { atenderErp, servirPlataforma } from "./erp.js";
 
 const MAX_IMAGENES = 3;
 const MAX_CARACTERES = 12000; // un pedido o una factura caben de sobra; evita gastar tokens en textos enormes
@@ -319,6 +320,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/api/procesar") return procesar(request, env);
+    // ERP básico y plataforma (ver src/erp.js)
+    const erp = await atenderErp(request, env, url);
+    if (erp) return erp;
+    if (url.pathname === "/plataforma" || url.pathname.startsWith("/plataforma/")) return servirPlataforma(request, env, url);
     if (url.pathname.startsWith("/api/")) return error("No encontrado.", 404);
     return env.ASSETS.fetch(request);
   },
