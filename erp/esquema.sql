@@ -6,6 +6,8 @@
 -- Cómo se mueven las cantidades: al ACEPTAR un pedido, cada línea pasa de stock_disponible a stock_reservado
 -- en su finca y queda anotada en `movimientos`. Si no alcanza el stock, el CHECK lo rechaza y no se mueve nada.
 
+DROP TABLE IF EXISTS despachos_salidas;
+DROP TABLE IF EXISTS despachos;
 DROP TABLE IF EXISTS mensajes;
 DROP TABLE IF EXISTS auditoria;
 DROP TABLE IF EXISTS movimientos;
@@ -110,3 +112,28 @@ CREATE INDEX idx_detalle_pedido ON pedido_detalle(pedido_id);
 CREATE INDEX idx_pedidos_estado ON pedidos(estado, fecha);
 CREATE INDEX idx_movimientos_id ON movimientos(id);
 CREATE INDEX idx_mensajes_wa ON mensajes(wa_id, id);
+
+-- Despachos (después de aceptar el pedido); también está suelto en erp/migracion_despachos.sql
+CREATE TABLE despachos (
+    pedido_id TEXT PRIMARY KEY,
+    estado TEXT NOT NULL,                       -- POR_VALIDAR, DEVUELTO, VALIDADO, DESPACHADO
+    contacto_nombre TEXT NOT NULL,
+    contacto_telefono TEXT NOT NULL,
+    direccion TEXT NOT NULL,
+    ciudad TEXT NOT NULL,
+    fecha_entrega TEXT NOT NULL,                -- AAAA-MM-DD
+    metodo_pago TEXT NOT NULL,                  -- transferencia, credito, contra_entrega, efectivo
+    transportista TEXT,                         -- lo anota el asesor al validar
+    referencia_pago TEXT,                       -- lo anota el asesor (comprobante, factura…)
+    motivo_devolucion TEXT,
+    validado_por TEXT,
+    creado TEXT NOT NULL,
+    actualizado TEXT NOT NULL
+);
+
+-- Una fila por pedido despachado: la llave primaria impide dar salida dos veces a la misma flor
+CREATE TABLE despachos_salidas (
+    pedido_id TEXT PRIMARY KEY
+);
+
+CREATE INDEX idx_despachos_estado ON despachos(estado, actualizado);

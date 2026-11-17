@@ -77,6 +77,7 @@ async function cargarResumen() {
     k.append(d);
   };
   kpi(miles(p.PENDIENTE || 0), "Pedidos por aprobar", p.PENDIENTE ? "alerta" : "");
+  kpi(miles(r.por_validar || 0), "Despachos por validar", r.por_validar ? "alerta" : "");
   kpi(miles(r.variedades), "Variedades de rosa");
   kpi(miles(r.productos), "Productos (variedad y largo)");
   kpi(miles(r.disponible), "Tallos disponibles");
@@ -189,6 +190,114 @@ async function cargarHistorial() {
   ));
 }
 
+// ---------- despachos ----------
+
+const ESTADO_DESPACHO = {
+  FALTAN_DATOS: "Esperando datos del cliente",
+  POR_VALIDAR: "Por validar",
+  DEVUELTO: "Devuelto al cliente",
+  VALIDADO: "Validado: listo para despachar",
+  DESPACHADO: "Despachado",
+};
+
+function tarjetaDespacho(d) {
+  const c = el("article", "tarjeta");
+  const cab = el("div", "pedido-cab");
+  const izq = el("div");
+  const id = el("div", "pedido-id", d.pedido_id);
+  id.append(" ", el("span", `badge ${d.estado}`, ESTADO_DESPACHO[d.estado] || d.estado));
+  izq.append(id, el("p", "pedido-meta", `${d.razon_social}${d.destino ? ` · Destino del pedido: ${d.destino}` : ""}`));
+  const der = el("div");
+  der.append(el("div", "total", dinero(d.total)));
+  cab.append(izq, der);
+  c.append(cab);
+
+  if (d.estado === "FALTAN_DATOS") {
+    c.append(el("p", "nota", "El agente ya le pidió al cliente los datos de entrega por WhatsApp. Cuando los envíe, aparecerán aquí para validarlos."));
+    return c;
+  }
+  c.append(tabla(["Recibe", "Teléfono", "Dirección", "Ciudad", "Entrega", "Pago"],
+    [[d.contacto_nombre, d.contacto_telefono, d.direccion, d.ciudad, d.fecha_entrega, d.metodo_pago_texto || d.metodo_pago]]));
+  if (d.transportista) c.append(el("p", "pedido-meta", `Transportista: ${d.transportista}${d.referencia_pago ? ` · Referencia de pago: ${d.referencia_pago}` : ""}`));
+  if (d.metodo_pago === "credito") c.append(el("p", "pedido-meta", `Crédito disponible del cliente: ${dinero(d.credito_disponible_calc)}`));
+  if (d.estado === "DEVUELTO") {
+    c.append(el("div", "resultado mal", `Devuelto al cliente: ${d.motivo_devolucion}. Está esperando que lo corrija por WhatsApp.`));
+    return c;
+  }
+
+  const transportista = el("input", "buscador", "", { type: "text", placeholder: "Transportista (obligatorio para validar)", maxlength: "80", "aria-label": "Transportista" });
+  const referencia = el("input", "buscador", "", { type: "text", placeholder: "Referencia de pago o comprobante (opcional)", maxlength: "80", "aria-label": "Referencia de pago" });
+  const motivo = el("textarea", "motivo", "", { placeholder: "Qué debe corregir el cliente (se le envía por WhatsApp)", rows: "2", maxlength: "300" });
+  motivo.hidden = true;
+  const acciones = el("div", "acciones");
+  const validar = el("button", "boton verde", "Validar datos", { type: "button" });
+  const despachar = el("button", "boton verde", "Marcar despachado", { type: "button" });
+  const devolver = el("button", "boton rojo", "Devolver al cliente", { type: "button" });
+  const confirmar = el("button", "boton rojo chico", "Enviar devolución", { type: "button" });
+  confirmar.hidden = true;
+  const resultado = el("div");
+  if (d.estado === "POR_VALIDAR") { c.append(transportista, referencia); acciones.append(validar, devolver, confirmar); }
+  else { acciones.append(despachar, devolver, confirmar); }
+  c.append(acciones, motivo, resultado);
+
+  async function enviar(accion) {
+    [validar, despachar, devolver, confirmar].forEach((b) => (b.disabled = true));
+    const r = await api("/despachos/accion", { method: "POST", body: JSON.stringify({ id: d.pedido_id, accion, usuario: "plataforma", motivo: motivo.value, transportista: transportista.value, referencia: referencia.value }) });
+    resultado.replaceChildren();
+    if (!r.ok) {
+      resultado.append(el("div", "resultado mal", r.error || "No se pudo completar."));
+      [validar, despachar, devolver, confirmar].forEach((b) => (b.disabled = false));
+      return;
+    }
+    acciones.hidden = true;
+    motivo.hidden = true;
+    const caja = el("div", "resultado ok");
+    caja.append(el("b", "", { validar: "Datos validados.", devolver: "Devuelto al cliente para corregir.", despachar: "Despachado. El stock se movió así:" }[accion]));
+    if (r.movimientos?.length) {
+      caja.append(tabla(["Finca", "Rosa", "Disponible", "Reservado"], r.movimientos.map((m) => [FINCAS[m.bodega] || m.bodega, m.sku, miles(m.disponible_despues), `−${miles(m.cantidad)} → ${miles(m.reservado_despues)}`]), [2, 3]));
+    }
+    caja.append(el("div", "", r.notificado ? "✓ El cliente recibió el aviso por WhatsApp." : `El cliente no recibió el aviso por WhatsApp (${r.motivo_no_notificado === "sin-configurar" ? "WhatsApp aún no está conectado a la plataforma" : r.motivo_no_notificado}).`));
+    resultado.append(caja);
+    cargarResumen();
+    cargarDespachados();
+  }
+  validar.addEventListener("click", () => enviar("validar"));
+  despachar.addEventListener("click", () => enviar("despachar"));
+  devolver.addEventListener("click", () => { motivo.hidden = false; confirmar.hidden = false; devolver.hidden = true; motivo.focus(); });
+  confirmar.addEventListener("click", () => enviar("devolver"));
+  return c;
+}
+
+let firmaDespachos = "";
+async function cargarDespachos(forzar = false) {
+  const r = await api("/despachos?limite=100");
+  if (!r.ok) return;
+  const caja = $("#despachos");
+  // Igual que con los pedidos: no se repinta mientras alguien escribe o ve un resultado, ni si nada cambió
+  if (!forzar && caja.querySelector(".motivo:not([hidden]), .resultado.ok, .resultado.mal, input:focus")) return;
+  const activos = r.despachos.filter((d) => d.estado !== "DESPACHADO");
+  const firma = activos.map((d) => `${d.pedido_id}:${d.estado}`).join("|");
+  if (!forzar && firma === firmaDespachos && caja.children.length) { pintarDespachados(r.despachos); return; }
+  firmaDespachos = firma;
+  caja.replaceChildren();
+  if (!activos.length) {
+    const v = el("div", "tarjeta");
+    v.append(el("p", "vacio", "No hay despachos pendientes. Cuando acepte un pedido, aquí seguirá el proceso hasta la salida de la flor."));
+    caja.append(v);
+  } else activos.forEach((d) => caja.append(tarjetaDespacho(d)));
+  pintarDespachados(r.despachos);
+}
+
+function pintarDespachados(todos) {
+  const caja = $("#despachados");
+  caja.replaceChildren();
+  const hechos = todos.filter((d) => d.estado === "DESPACHADO");
+  if (!hechos.length) return caja.append(el("p", "vacio", "Todavía no hay despachos."));
+  caja.append(tabla(["Pedido", "Cliente", "Ciudad", "Entrega", "Pago", "Transportista", "Total"],
+    hechos.map((d) => [d.pedido_id, d.razon_social, d.ciudad, d.fecha_entrega, d.metodo_pago_texto || "", d.transportista || "", dinero(d.total)]), [6]));
+}
+const cargarDespachados = () => cargarDespachos(true);
+
 // ---------- ERP ----------
 
 let busqueda;
@@ -300,8 +409,9 @@ async function abrirChat(wa) {
 
 function mostrarVista(v) {
   document.querySelectorAll(".pestana").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.vista === v)));
-  for (const nombre of ["pedidos", "erp", "chats"]) $(`#vista-${nombre}`).hidden = nombre !== v;
+  for (const nombre of ["pedidos", "despachos", "erp", "chats"]) $(`#vista-${nombre}`).hidden = nombre !== v;
   if (v === "pedidos") { cargarPendientes(); cargarHistorial(); }
+  if (v === "despachos") cargarDespachos(true);
   if (v === "erp") mostrarErp(erpActual);
   if (v === "chats") cargarChats();
 }
@@ -319,5 +429,7 @@ cargarPendientes();
 cargarHistorial();
 // Los pedidos nuevos aparecen solos mientras la pestaña está a la vista
 setInterval(() => {
-  if (document.visibilityState === "visible" && !$("#vista-pedidos").hidden) { cargarResumen(); cargarPendientes(); }
+  if (document.visibilityState !== "visible") return;
+  if (!$("#vista-pedidos").hidden) { cargarResumen(); cargarPendientes(); }
+  if (!$("#vista-despachos").hidden) { cargarResumen(); cargarDespachos(); }
 }, 8000);

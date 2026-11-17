@@ -25,6 +25,7 @@
 
         <nav class="pestanas" role="tablist" aria-label="Secciones">
             <button class="pestana" role="tab" id="t-pedidos" aria-selected="true" data-vista="pedidos">Pedidos</button>
+            <button class="pestana" role="tab" id="t-despachos" aria-selected="false" data-vista="despachos">Despachos</button>
             <button class="pestana" role="tab" id="t-erp" aria-selected="false" data-vista="erp">ERP</button>
             <button class="pestana" role="tab" id="t-chats" aria-selected="false" data-vista="chats">Conversaciones del agente</button>
         </nav>
@@ -36,6 +37,14 @@
             <div id="pendientes"></div>
             <div class="seccion-titulo" style="margin-top:22px"><h2>Historial</h2></div>
             <div class="tarjeta"><div class="tabla-caja" id="historial"></div></div>
+        </section>
+
+        <!-- Despachos -->
+        <section id="vista-despachos" hidden>
+            <p class="nota">Después de aceptar un pedido, el agente le pide al cliente por WhatsApp los datos de entrega y el método de pago. Aquí un asesor los <b>valida</b> (o los devuelve para corregir) y marca el <b>despacho</b>: en ese momento la flor reservada sale del inventario.</p>
+            <div id="despachos"></div>
+            <div class="seccion-titulo" style="margin-top:22px"><h2>Despachados</h2></div>
+            <div class="tarjeta"><div class="tabla-caja" id="despachados"></div></div>
         </section>
 
         <!-- ERP -->

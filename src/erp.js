@@ -8,6 +8,7 @@
 //   - Un pedido pendiente solo se acepta con precios del ERP y stock que alcance.
 //   - Aceptar un pedido mueve la flor de "disponible" a "reservado" en su finca, todo o nada.
 //   - Un pedido se decide una sola vez (aunque lo toquen dos personas a la vez).
+//   - Un pedido aceptado se despacha solo con datos de entrega validados por un asesor; al despachar baja lo reservado.
 
 import { claveCorrecta, configurado, crearCookie, cookieVencida, sesionValida } from "./sesion.js";
 
@@ -108,6 +109,12 @@ async function erpAgente(request, env, url) {
   }
   if (ruta === "/clientes/whatsapp" && metodo === "POST") return registrarClienteWhatsapp(request, env);
   if (ruta === "/pedidos/pendiente" && metodo === "POST") return crearPedidoPendiente(request, env);
+  if (ruta === "/despachos/pendientes" && metodo === "GET") {
+    const wa = digitos(url.searchParams.get("wa"));
+    if (wa.length < 8) return fallo("Número no válido.", 400);
+    return json({ ok: true, despachos: await despachosPendientesDe(env, wa) });
+  }
+  if (ruta === "/despachos" && metodo === "POST") return guardarDatosDespacho(request, env);
   if (ruta === "/auditoria" && metodo === "POST") {
     const { d, error } = await cuerpoJson(request);
     if (error) return error;
@@ -220,6 +227,171 @@ function lineasParaCliente(lineas) {
   return lineas.map((l) => `• ${l.cantidad} tallos (${l.cantidad / TALLOS_POR_BONCHE} bonches) ${l.nombre}: ${dinero(l.precio_unitario)} c/u${l.descuento_pct ? `, ${l.descuento_pct}% de descuento` : ""} = ${dinero(l.subtotal)}`).join("\n");
 }
 
+// ---------- despachos: lo que pasa después de aceptar un pedido ----------
+// El agente le pide los datos al cliente por WhatsApp, el servidor los valida y un asesor los revisa
+// en la plataforma. Solo con datos validados se puede despachar, y al despachar baja lo reservado.
+
+const METODOS_PAGO = { transferencia: "Transferencia", credito: "Crédito", contra_entrega: "Contra entrega", efectivo: "Efectivo" };
+const DATOS_DESPACHO = "nombre y teléfono de quien recibe, dirección y ciudad de entrega, fecha de entrega y método de pago (transferencia, crédito, contra entrega o efectivo)";
+
+const hoyEcuador = () => ahora().slice(0, 10);
+const sumarDias = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+const limpio = (v, max) => texto(v, max).replace(/\s+/g, " ").trim();
+
+function metodoPago(v) {
+  const m = normalizar(v).replace(/[^a-z]+/g, "_").replace(/^_|_$/g, "");
+  if (METODOS_PAGO[m]) return m;
+  if (m === "contraentrega" || m === "contra_entrega" || m === "pago_contra_entrega") return "contra_entrega";
+  if (m === "transferencia_bancaria" || m === "deposito") return "transferencia";
+  return null;
+}
+
+// Devuelve { datos } o { error } con un mensaje que el agente puede repetirle al cliente.
+function validarDatosDespacho(d, cliente, pedido) {
+  const nombre = limpio(d.contacto_nombre, 80);
+  const telefono = digitos(d.contacto_telefono);
+  const direccion = limpio(d.direccion, 200);
+  const ciudad = limpio(d.ciudad, 60);
+  const fecha = limpio(d.fecha_entrega, 10);
+  const metodo = metodoPago(d.metodo_pago);
+  if (nombre.length < 3) return { error: "Falta el nombre de quien recibe." };
+  if (telefono.length < 7 || telefono.length > 15) return { error: "El teléfono de contacto no es válido (entre 7 y 15 dígitos)." };
+  if (direccion.length < 8) return { error: "La dirección de entrega está incompleta (calle, número y referencia)." };
+  if (ciudad.length < 2) return { error: "Falta la ciudad de entrega." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || Number.isNaN(Date.parse(`${fecha}T00:00:00Z`)) || new Date(`${fecha}T00:00:00Z`).toISOString().slice(0, 10) !== fecha) {
+    return { error: "La fecha de entrega debe tener el formato AAAA-MM-DD." };
+  }
+  const hoy = hoyEcuador();
+  if (fecha < hoy) return { error: "La fecha de entrega no puede ser anterior a hoy." };
+  if (fecha > sumarDias(hoy, 90)) return { error: "La fecha de entrega no puede pasar de 90 días." };
+  if (!metodo) return { error: "El método de pago debe ser transferencia, crédito, contra entrega o efectivo." };
+  if (metodo === "credito" && pedido.total > cliente.credito_disponible + 1e-6) {
+    return { error: `El total ($${pedido.total.toFixed(2)}) supera el crédito disponible ($${cliente.credito_disponible.toFixed(2)}). Elija otro método de pago.` };
+  }
+  return { datos: { contacto_nombre: nombre, contacto_telefono: telefono, direccion, ciudad, fecha_entrega: fecha, metodo_pago: metodo } };
+}
+
+// Pedidos aceptados de un número que todavía no salieron, con el estado de sus datos de despacho.
+async function despachosPendientesDe(env, wa) {
+  const filas = await todos(env,
+    "SELECT p.id, p.total, p.destino, d.estado AS d_estado, d.motivo_devolucion, d.fecha_entrega, d.ciudad, d.metodo_pago FROM pedidos p LEFT JOIN despachos d ON d.pedido_id=p.id WHERE p.estado='APROBADO' AND p.wa_id=? AND COALESCE(d.estado,'') <> 'DESPACHADO' ORDER BY p.id DESC LIMIT 5", wa);
+  return filas.map((f) => ({
+    pedido_id: f.id, total: f.total, destino: f.destino,
+    estado: f.d_estado || "FALTAN_DATOS", motivo_devolucion: f.motivo_devolucion || null,
+    ...(f.d_estado ? { fecha_entrega: f.fecha_entrega, ciudad: f.ciudad, metodo_pago: f.metodo_pago } : {}),
+  }));
+}
+
+async function guardarDatosDespacho(request, env) {
+  const { d, error } = await cuerpoJson(request);
+  if (error) return error;
+  const wa = digitos(d.wa_id);
+  const id = String(d.pedido_id ?? "");
+  if (!/^PED-\d{4,}$/.test(id) || wa.length < 8) return fallo("Pedido o número no válido.", 400);
+  const pedido = await uno(env, "SELECT * FROM pedidos WHERE id=?", id);
+  if (!pedido || pedido.wa_id !== wa) return fallo("Ese pedido no está a nombre de este número.", 404);
+  if (pedido.estado !== "APROBADO") return fallo("Solo se piden datos de despacho de pedidos aceptados.", 409);
+  const actual = await uno(env, "SELECT estado FROM despachos WHERE pedido_id=?", id);
+  if (actual && !["POR_VALIDAR", "DEVUELTO"].includes(actual.estado)) {
+    return fallo(actual.estado === "DESPACHADO" ? "Ese pedido ya fue despachado." : "Los datos ya fueron validados por un asesor; para cambiarlos hable con él.", 409);
+  }
+  const cliente = await buscarCliente(env, pedido.cliente_id);
+  const v = validarDatosDespacho(d, cliente, pedido);
+  if (v.error) return fallo(v.error, 422);
+  const x = v.datos;
+  const cuando = ahora();
+  await env.ERP.batch([
+    env.ERP.prepare("INSERT INTO despachos (pedido_id, estado, contacto_nombre, contacto_telefono, direccion, ciudad, fecha_entrega, metodo_pago, creado, actualizado) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(pedido_id) DO UPDATE SET estado='POR_VALIDAR', contacto_nombre=excluded.contacto_nombre, contacto_telefono=excluded.contacto_telefono, direccion=excluded.direccion, ciudad=excluded.ciudad, fecha_entrega=excluded.fecha_entrega, metodo_pago=excluded.metodo_pago, motivo_devolucion=NULL, actualizado=excluded.actualizado WHERE despachos.estado IN ('POR_VALIDAR','DEVUELTO')")
+      .bind(id, "POR_VALIDAR", x.contacto_nombre, x.contacto_telefono, x.direccion, x.ciudad, x.fecha_entrega, x.metodo_pago, cuando, cuando),
+    env.ERP.prepare("INSERT INTO auditoria (timestamp, usuario, accion, payload_json, resultado) VALUES (?,?,?,?,?)")
+      .bind(cuando, "agente-ia", "DESPACHO_DATOS_RECIBIDOS", JSON.stringify({ pedido_id: id, ciudad: x.ciudad, fecha_entrega: x.fecha_entrega, metodo_pago: x.metodo_pago }), "Esperando validación de un asesor"),
+  ]);
+  return json({ ok: true, pedido_id: id, estado: "POR_VALIDAR", metodo_pago: METODOS_PAGO[x.metodo_pago] });
+}
+
+// Avisa al cliente por WhatsApp y deja el aviso en su conversación
+async function avisarCliente(env, wa, aviso, detalle, ok = true) {
+  const enviado = await enviarWhatsapp(env, wa, aviso);
+  if (wa) {
+    await env.ERP.prepare("INSERT INTO mensajes (wa_id, rol, texto, ts, traza_json) VALUES (?,?,?,?,?)")
+      .bind(wa, "agente", `[Plataforma] ${aviso}`, ahora(), JSON.stringify([{ nodo: "plataforma", detalle, ok }])).run();
+  }
+  return enviado;
+}
+
+async function accionDespacho(env, { id, accion, usuario, motivo, transportista, referencia }) {
+  const pedido = await uno(env, "SELECT * FROM pedidos WHERE id=?", id);
+  const d = await uno(env, "SELECT * FROM despachos WHERE pedido_id=?", id);
+  if (!pedido || pedido.estado !== "APROBADO") return fallo("No se encontró un pedido aceptado con ese número.", 404);
+  if (!d) return fallo("El cliente todavía no entregó los datos de despacho.", 409);
+  const quien = limpio(usuario, 60) || "plataforma";
+  const cuando = ahora();
+  const wa = pedido.wa_id;
+  const lugar = `${d.direccion}, ${d.ciudad}`;
+  let aviso, estadoNuevo;
+
+  if (accion === "validar") {
+    if (d.estado !== "POR_VALIDAR") return fallo(`Los datos están en estado ${d.estado.toLowerCase()}; solo se validan los que están por validar.`, 409);
+    const carrier = limpio(transportista, 80);
+    if (carrier.length < 3) return fallo("Indique el transportista para validar.", 400);
+    const cliente = await buscarCliente(env, pedido.cliente_id);
+    if (d.metodo_pago === "credito" && pedido.total > cliente.credito_disponible + 1e-6) return fallo("El cliente ya no tiene crédito suficiente para este pedido. Devuélvalo para que elija otro método de pago.", 409);
+    await env.ERP.batch([
+      env.ERP.prepare("UPDATE despachos SET estado='VALIDADO', transportista=?, referencia_pago=?, validado_por=?, motivo_devolucion=NULL, actualizado=? WHERE pedido_id=? AND estado='POR_VALIDAR'")
+        .bind(carrier, limpio(referencia, 80) || null, quien, cuando, id),
+      env.ERP.prepare("INSERT INTO auditoria (timestamp, usuario, accion, payload_json, resultado) VALUES (?,?,?,?,?)")
+        .bind(cuando, quien, "DESPACHO_VALIDADO", JSON.stringify({ pedido_id: id, transportista: carrier, metodo_pago: d.metodo_pago }), "Datos revisados por un asesor"),
+    ]);
+    estadoNuevo = "VALIDADO";
+    aviso = `✅ Validamos los datos de entrega de su pedido ${id}.\nEntrega: ${d.fecha_entrega} en ${lugar}. Recibe: ${d.contacto_nombre}.\nTransporte: ${carrier}. Pago: ${METODOS_PAGO[d.metodo_pago]}.\nLe avisamos cuando salga el despacho.`;
+  } else if (accion === "devolver") {
+    if (!["POR_VALIDAR", "VALIDADO"].includes(d.estado)) return fallo("Solo se devuelven datos que están por validar o validados.", 409);
+    const razon = limpio(motivo, 300);
+    if (razon.length < 3) return fallo("Escriba qué debe corregir el cliente.", 400);
+    await env.ERP.batch([
+      env.ERP.prepare("UPDATE despachos SET estado='DEVUELTO', motivo_devolucion=?, validado_por=NULL, actualizado=? WHERE pedido_id=? AND estado IN ('POR_VALIDAR','VALIDADO')").bind(razon, cuando, id),
+      env.ERP.prepare("INSERT INTO auditoria (timestamp, usuario, accion, payload_json, resultado) VALUES (?,?,?,?,?)")
+        .bind(cuando, quien, "DESPACHO_DEVUELTO", JSON.stringify({ pedido_id: id, motivo: razon }), "El cliente debe corregir"),
+    ]);
+    estadoNuevo = "DEVUELTO";
+    aviso = `Para despachar su pedido ${id} necesitamos corregir un dato: ${razon}\nResponda por aquí con el dato correcto y lo revisamos de nuevo.`;
+  } else {
+    if (d.estado !== "VALIDADO") return fallo("Solo se despacha un pedido con datos validados.", 409);
+    const lineas = await todos(env, "SELECT * FROM pedido_detalle WHERE pedido_id=?", id);
+    const sentencias = [
+      env.ERP.prepare("INSERT INTO despachos_salidas (pedido_id) VALUES (?)").bind(id),
+      env.ERP.prepare("UPDATE despachos SET estado='DESPACHADO', actualizado=? WHERE pedido_id=? AND estado='VALIDADO'").bind(cuando, id),
+    ];
+    for (const l of lineas) {
+      sentencias.push(
+        env.ERP.prepare("UPDATE inventario SET stock_reservado = stock_reservado - ? WHERE sku=? AND bodega=?").bind(l.cantidad, l.sku, l.bodega),
+        env.ERP.prepare("INSERT INTO movimientos (ts, sku, bodega, tipo, cantidad, pedido_id, disponible_antes, disponible_despues, reservado_despues) SELECT ?1, sku, bodega, 'SALIDA_DESPACHO', ?2, ?3, stock_disponible, stock_disponible, stock_reservado FROM inventario WHERE sku=?4 AND bodega=?5")
+          .bind(cuando, l.cantidad, id, l.sku, l.bodega),
+      );
+    }
+    if (d.metodo_pago === "credito") sentencias.push(env.ERP.prepare("UPDATE clientes SET saldo_pendiente = saldo_pendiente + ? WHERE id=?").bind(pedido.total, pedido.cliente_id));
+    sentencias.push(env.ERP.prepare("INSERT INTO auditoria (timestamp, usuario, accion, payload_json, resultado) VALUES (?,?,?,?,?)")
+      .bind(cuando, quien, "PEDIDO_DESPACHADO", JSON.stringify({ pedido_id: id, total: pedido.total, metodo_pago: d.metodo_pago }), d.metodo_pago === "credito" ? "Sale la flor reservada y el total pasa al saldo del cliente" : "Sale la flor reservada"));
+    try {
+      await env.ERP.batch(sentencias);
+    } catch (e) {
+      if (/UNIQUE|PRIMARY/i.test(String(e))) return fallo("Este pedido ya fue despachado.", 409);
+      throw e;
+    }
+    estadoNuevo = "DESPACHADO";
+    aviso = `🚚 Su pedido ${id} salió hoy hacia ${lugar}. Entrega prevista: ${d.fecha_entrega}. Transporte: ${d.transportista}.\n¡Gracias por su compra!`;
+  }
+  const enviado = await avisarCliente(env, wa, aviso, `Despacho ${estadoNuevo.toLowerCase()} por ${quien}`, accion !== "devolver");
+  const movimientos = accion === "despachar" ? await todos(env, "SELECT sku, bodega, cantidad, disponible_despues, reservado_despues FROM movimientos WHERE pedido_id=? AND tipo='SALIDA_DESPACHO' ORDER BY id", id) : [];
+  return json({ ok: true, estado: estadoNuevo, movimientos, notificado: enviado.ok, motivo_no_notificado: enviado.ok ? null : enviado.motivo });
+}
+
+async function listarDespachos(env, limite) {
+  const filas = await todos(env,
+    "SELECT p.id AS pedido_id, p.total, p.destino, p.wa_id, p.cliente_id, c.razon_social, c.credito_disponible_calc, d.estado AS d_estado, d.contacto_nombre, d.contacto_telefono, d.direccion, d.ciudad, d.fecha_entrega, d.metodo_pago, d.transportista, d.referencia_pago, d.motivo_devolucion, d.actualizado FROM pedidos p JOIN (SELECT id, razon_social, limite_credito - saldo_pendiente AS credito_disponible_calc FROM clientes) c ON c.id=p.cliente_id LEFT JOIN despachos d ON d.pedido_id=p.id WHERE p.estado='APROBADO' ORDER BY (COALESCE(d.estado,'')='DESPACHADO'), p.id DESC LIMIT ?", limite);
+  return filas.map((f) => ({ ...f, estado: f.d_estado || "FALTAN_DATOS", metodo_pago_texto: METODOS_PAGO[f.metodo_pago] || null }));
+}
+
 // ---------- puerta de la plataforma: /api/plataforma/* ----------
 
 async function decidirPedido(env, { id, accion, usuario, motivo }) {
@@ -268,7 +440,7 @@ async function decidirPedido(env, { id, accion, usuario, motivo }) {
       throw e;
     }
     movimientos = await todos(env, "SELECT sku, bodega, cantidad, disponible_antes, disponible_despues, reservado_despues FROM movimientos WHERE pedido_id=? ORDER BY id", id);
-    aviso = `✅ ¡Su pedido ${id} fue aprobado!\n${lineasParaCliente(lineas)}\nTotal: ${dinero(pedido.total)}\nLa flor quedó reservada en ${[...new Set(lineas.map((l) => l.bodega))].join(", ")}. Un asesor le confirma el despacho.`;
+    aviso = `✅ ¡Su pedido ${id} fue aprobado!\n${lineasParaCliente(lineas)}\nTotal: ${dinero(pedido.total)}\nLa flor quedó reservada en ${[...new Set(lineas.map((l) => l.bodega))].join(", ")}. Para programar el despacho envíeme por aquí: ${DATOS_DESPACHO}.`;
   }
 
   const enviado = await enviarWhatsapp(env, pedido.wa_id, aviso);
@@ -310,7 +482,8 @@ async function plataforma(request, env, url) {
     const s = await uno(env, "SELECT COALESCE(SUM(stock_disponible),0) AS disponible, COALESCE(SUM(stock_reservado),0) AS reservado FROM inventario");
     const p = await todos(env, "SELECT estado, COUNT(*) AS n FROM pedidos GROUP BY estado");
     const c = await uno(env, "SELECT COUNT(*) AS n FROM clientes");
-    return json({ ok: true, ...k, ...s, clientes: c.n, pedidos: Object.fromEntries(p.map((x) => [x.estado, x.n])) });
+    const pv = await uno(env, "SELECT COUNT(*) AS n FROM despachos WHERE estado='POR_VALIDAR'");
+    return json({ ok: true, ...k, ...s, clientes: c.n, por_validar: pv.n, pedidos: Object.fromEntries(p.map((x) => [x.estado, x.n])) });
   }
   if (ruta === "/pedidos" && metodo === "GET") {
     const estado = url.searchParams.get("estado");
@@ -329,6 +502,16 @@ async function plataforma(request, env, url) {
     if (error) return error;
     if (!/^PED-\d{4,}$/.test(String(d.id)) || !["aprobar", "rechazar"].includes(d.accion)) return fallo("Datos no válidos.", 400);
     return decidirPedido(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo });
+  }
+  if (ruta === "/despachos" && metodo === "GET") {
+    return json({ ok: true, despachos: await listarDespachos(env, limite) });
+  }
+  if (ruta === "/despachos/accion" && metodo === "POST") {
+    if (!mismoOrigen(request)) return fallo("Origen no permitido.", 403);
+    const { d, error } = await cuerpoJson(request);
+    if (error) return error;
+    if (!/^PED-\d{4,}$/.test(String(d.id)) || !["validar", "devolver", "despachar"].includes(d.accion)) return fallo("Datos no válidos.", 400);
+    return accionDespacho(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo, transportista: d.transportista, referencia: d.referencia });
   }
   if (ruta === "/inventario" && metodo === "GET") {
     const q = texto(url.searchParams.get("q"), 40).replace(/[%_\\]/g, "").trim();
