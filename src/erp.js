@@ -17,6 +17,7 @@ const TALLOS_POR_BONCHE = 25;
 const MAX_CUERPO = 256 * 1024;
 const MAX_LINEAS = 50;
 const CODIFICAR = new TextEncoder();
+const CACHE_RESUMEN = { datos: null, t: 0 };
 
 // ---------- utilidades ----------
 
@@ -102,7 +103,7 @@ async function erpAgente(request, env, url) {
   }
   if (ruta === "/inventario" && metodo === "GET") {
     const sku = texto(url.searchParams.get("sku"), 40);
-    return json({ ok: true, inventario: await todos(env, "SELECT bodega, stock_disponible, stock_reservado FROM inventario WHERE upper(sku)=upper(?) ORDER BY stock_disponible DESC", sku) });
+    return json({ ok: true, inventario: await todos(env, "SELECT bodega, stock_disponible, stock_reservado FROM inventario WHERE sku=upper(?) ORDER BY stock_disponible DESC", sku) });
   }
   if (ruta === "/clientes" && metodo === "GET") {
     return json({ ok: true, cliente: await buscarCliente(env, url.searchParams.get("q")) });
@@ -547,12 +548,18 @@ async function plataforma(request, env, url) {
   const limite = Math.min(Math.max(Number(url.searchParams.get("limite")) || 50, 1), 200);
 
   if (ruta === "/resumen" && metodo === "GET") {
-    const k = await uno(env, "SELECT COUNT(*) AS productos, COUNT(DISTINCT substr(nombre, 1, length(nombre) - 6)) AS variedades FROM productos");
-    const s = await uno(env, "SELECT COALESCE(SUM(stock_disponible),0) AS disponible, COALESCE(SUM(stock_reservado),0) AS reservado FROM inventario");
     const p = await todos(env, "SELECT estado, COUNT(*) AS n FROM pedidos GROUP BY estado");
-    const c = await uno(env, "SELECT COUNT(*) AS n FROM clientes");
     const pv = await uno(env, "SELECT COUNT(*) AS n FROM despachos WHERE estado='POR_VALIDAR'");
-    return json({ ok: true, ...k, ...s, clientes: c.n, por_validar: pv.n, pedidos: Object.fromEntries(p.map((x) => [x.estado, x.n])) });
+    const vivo = { por_validar: pv.n, pedidos: Object.fromEntries(p.map((x) => [x.estado, x.n])) };
+    // Lo caro (recorrer todo el inventario) se recalcula como máximo cada 2 minutos: D1 gratis permite 5 millones de lecturas al día
+    if (!CACHE_RESUMEN.datos || Date.now() - CACHE_RESUMEN.t > 120000) {
+      const k = await uno(env, "SELECT COUNT(*) AS productos, COUNT(DISTINCT substr(nombre, 1, length(nombre) - 6)) AS variedades FROM productos");
+      const st = await uno(env, "SELECT COALESCE(SUM(stock_disponible),0) AS disponible, COALESCE(SUM(stock_reservado),0) AS reservado FROM inventario");
+      const cl = await uno(env, "SELECT COUNT(*) AS n FROM clientes");
+      CACHE_RESUMEN.datos = { ...k, ...st, clientes: cl.n };
+      CACHE_RESUMEN.t = Date.now();
+    }
+    return json({ ok: true, ...CACHE_RESUMEN.datos, ...vivo });
   }
   if (ruta === "/pedidos" && metodo === "GET") {
     const estado = url.searchParams.get("estado");
@@ -585,9 +592,13 @@ async function plataforma(request, env, url) {
   if (ruta === "/inventario" && metodo === "GET") {
     const q = texto(url.searchParams.get("q"), 40).replace(/[%_\\]/g, "").trim();
     const patron = `%${q}%`;
-    const filas = await todos(env,
-      "SELECT p.sku, p.nombre, p.precio_unitario, i.bodega, i.stock_disponible, i.stock_reservado FROM productos p JOIN inventario i ON i.sku=p.sku WHERE (?1 = '' OR p.nombre LIKE ?2 OR p.sku LIKE ?2) ORDER BY p.sku, i.bodega LIMIT ?3",
-      q, patron, limite * 3);
+    const prods = q
+      ? await todos(env, "SELECT sku, nombre, precio_unitario FROM productos WHERE nombre LIKE ?1 OR sku LIKE ?1 ORDER BY sku LIMIT ?2", patron, limite)
+      : await todos(env, "SELECT sku, nombre, precio_unitario FROM productos ORDER BY sku LIMIT ?1", limite);
+    const stock = prods.length
+      ? await todos(env, `SELECT sku, bodega, stock_disponible, stock_reservado FROM inventario WHERE sku IN (${prods.map(() => "?").join(",")}) ORDER BY sku, bodega`, ...prods.map((x) => x.sku))
+      : [];
+    const filas = stock.map((f) => ({ ...f, ...prods.find((x) => x.sku === f.sku) }));
     const porSku = new Map();
     for (const f of filas) {
       if (!porSku.has(f.sku)) porSku.set(f.sku, { sku: f.sku, nombre: f.nombre, precio_unitario: f.precio_unitario, fincas: {} });
