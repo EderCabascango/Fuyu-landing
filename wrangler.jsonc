@@ -14,9 +14,9 @@
   },
 
   // ERP básico de la demo (Cloudflare D1). El esquema está en erp/esquema.sql.
-  // Cambie database_id por el de la base real (npx wrangler d1 create fuyu-erp).
+  // Base creada con: npx wrangler d1 create fuyu-erp
   "d1_databases": [
-    { "binding": "ERP", "database_name": "fuyu-erp", "database_id": "REEMPLAZAR-POR-EL-ID-DE-LA-BASE" }
+    { "binding": "ERP", "database_name": "fuyu-erp", "database_id": "5fae4817-4bfd-482c-824c-d6253cdb1abc" }
   ],
 
   // Configuración editable sin tocar código.
