@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Entrar · Plataforma Fuyu</title>
+    <link rel="icon" href="../assets/fuyudatoslogo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+    <main class="acceso">
+        <div class="tarjeta">
+            <div class="marca"><img src="../assets/fuyudatoslogo.png" alt="" width="36" height="36"><span>Fuyu</span></div>
+            <h1>Plataforma de pedidos</h1>
+            <p class="nota">Acceso privado. Aquí se aceptan o rechazan los pedidos que llegan por WhatsApp y se ve el ERP.</p>
+            <form id="form" autocomplete="off">
+                <label for="clave">Contraseña</label>
+                <input id="clave" type="password" autocomplete="current-password" autofocus required>
+                <p class="error" id="error" role="alert"></p>
+                <button class="boton primario" type="submit" id="entrar">Entrar</button>
+            </form>
+        </div>
+    </main>
+    <script src="entrar.js"></script>
+</body>
+</html>

@@ -5,3 +5,8 @@ node_modules/
 !.dev.vars.example
 .env
 .taste-skill/
+
+# Datos del ERP de la demo con la lista de variedades del cliente (se cargan a D1, no se suben al repositorio)
+erp/semilla*.sql
+.dev.vars
+.wrangler/
