@@ -432,4 +432,4 @@ setInterval(() => {
   if (document.visibilityState !== "visible") return;
   if (!$("#vista-pedidos").hidden) { cargarResumen(); cargarPendientes(); }
   if (!$("#vista-despachos").hidden) { cargarResumen(); cargarDespachos(); }
-}, 8000);
+}, 15000);
