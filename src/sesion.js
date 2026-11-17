@@ -47,3 +47,13 @@ export async function sesionValida(request, env) {
   if (Number(vence) < Date.now() / 1000) return false;
   return crypto.subtle.verify("HMAC", await llaveHmac(env.SECRETO_SESION), deHex(firma), codificar.encode(vence));
 }
+
+// Firma para enlaces de un solo propósito (por ejemplo el formulario de despacho del cliente)
+export async function firmarTexto(env, texto) {
+  return aHex(await crypto.subtle.sign("HMAC", await llaveHmac(env.SECRETO_SESION), codificar.encode(texto)));
+}
+
+export async function firmaValida(env, texto, firma) {
+  if (!configurado(env) || !/^[0-9a-f]{64}$/.test(firma || "")) return false;
+  return crypto.subtle.verify("HMAC", await llaveHmac(env.SECRETO_SESION), deHex(firma), codificar.encode(texto));
+}
