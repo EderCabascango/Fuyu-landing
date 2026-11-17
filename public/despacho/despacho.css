@@ -1,0 +1,12 @@
+.despacho label { display: block; margin: 14px 0 4px; font-weight: 600; color: var(--tinta); font-size: 14px; }
+.despacho input, .despacho select {
+    width: 100%; min-height: 44px; padding: 10px 12px; font: inherit; color: var(--texto);
+    background: var(--blanco); border: 1px solid var(--borde); border-radius: 10px;
+}
+.despacho input:focus-visible, .despacho select:focus-visible { outline: 3px solid #9db4ff; outline-offset: 2px; }
+.despacho .ayuda { font-size: 13px; color: var(--suave); margin: 6px 0 0; }
+.despacho .boton { width: 100%; margin-top: 16px; }
+.despacho .resumen-linea { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 4px 0; border-bottom: 1px solid var(--borde); }
+.despacho .resumen-linea span:last-child { font-weight: 600; white-space: nowrap; }
+.despacho .resumen-total { font-weight: 700; color: var(--tinta); border-bottom: 0; }
+#resumen { margin: 8px 0 4px; }

@@ -10,7 +10,7 @@
 //   - Un pedido se decide una sola vez (aunque lo toquen dos personas a la vez).
 //   - Un pedido aceptado se despacha solo con datos de entrega validados por un asesor; al despachar baja lo reservado.
 
-import { claveCorrecta, configurado, crearCookie, cookieVencida, sesionValida } from "./sesion.js";
+import { claveCorrecta, configurado, crearCookie, cookieVencida, firmarTexto, firmaValida, sesionValida } from "./sesion.js";
 
 const BODEGAS = ["CAY", "TAB", "LAT"];
 const TALLOS_POR_BONCHE = 25;
@@ -112,7 +112,7 @@ async function erpAgente(request, env, url) {
   if (ruta === "/despachos/pendientes" && metodo === "GET") {
     const wa = digitos(url.searchParams.get("wa"));
     if (wa.length < 8) return fallo("Número no válido.", 400);
-    return json({ ok: true, despachos: await despachosPendientesDe(env, wa) });
+    return json({ ok: true, despachos: await despachosPendientesDe(env, wa, url.origin) });
   }
   if (ruta === "/despachos" && metodo === "POST") return guardarDatosDespacho(request, env);
   if (ruta === "/auditoria" && metodo === "POST") {
@@ -272,14 +272,39 @@ function validarDatosDespacho(d, cliente, pedido) {
 }
 
 // Pedidos aceptados de un número que todavía no salieron, con el estado de sus datos de despacho.
-async function despachosPendientesDe(env, wa) {
+async function despachosPendientesDe(env, wa, origen) {
   const filas = await todos(env,
-    "SELECT p.id, p.total, p.destino, d.estado AS d_estado, d.motivo_devolucion, d.fecha_entrega, d.ciudad, d.metodo_pago FROM pedidos p LEFT JOIN despachos d ON d.pedido_id=p.id WHERE p.estado='APROBADO' AND p.wa_id=? AND COALESCE(d.estado,'') <> 'DESPACHADO' ORDER BY p.id DESC LIMIT 5", wa);
-  return filas.map((f) => ({
-    pedido_id: f.id, total: f.total, destino: f.destino,
-    estado: f.d_estado || "FALTAN_DATOS", motivo_devolucion: f.motivo_devolucion || null,
-    ...(f.d_estado ? { fecha_entrega: f.fecha_entrega, ciudad: f.ciudad, metodo_pago: f.metodo_pago } : {}),
+    "SELECT p.id, p.wa_id, p.total, p.destino, d.estado AS d_estado, d.motivo_devolucion, d.fecha_entrega, d.ciudad, d.metodo_pago FROM pedidos p LEFT JOIN despachos d ON d.pedido_id=p.id WHERE p.estado='APROBADO' AND p.wa_id=? AND COALESCE(d.estado,'') <> 'DESPACHADO' ORDER BY p.id DESC LIMIT 5", wa);
+  return Promise.all(filas.map(async (f) => {
+    const estado = f.d_estado || "FALTAN_DATOS";
+    return {
+      pedido_id: f.id, total: f.total, destino: f.destino,
+      estado, motivo_devolucion: f.motivo_devolucion || null,
+      ...(f.d_estado ? { fecha_entrega: f.fecha_entrega, ciudad: f.ciudad, metodo_pago: f.metodo_pago } : {}),
+      ...(estado === "FALTAN_DATOS" || estado === "DEVUELTO" ? { enlace: await enlaceDespacho(env, origen, f) } : {}),
+    };
   }));
+}
+
+// Guarda los datos de despacho de un pedido ya leído de la base. Devuelve { error, estado } o { ok }.
+async function registrarDatosDespacho(env, pedido, d, quien) {
+  if (pedido.estado !== "APROBADO") return { error: "Solo se piden datos de despacho de pedidos aceptados.", estado: 409 };
+  const actual = await uno(env, "SELECT estado FROM despachos WHERE pedido_id=?", pedido.id);
+  if (actual && !["POR_VALIDAR", "DEVUELTO"].includes(actual.estado)) {
+    return { error: actual.estado === "DESPACHADO" ? "Ese pedido ya fue despachado." : "Los datos ya fueron validados por un asesor; para cambiarlos hable con él.", estado: 409 };
+  }
+  const cliente = await buscarCliente(env, pedido.cliente_id);
+  const v = validarDatosDespacho(d, cliente, pedido);
+  if (v.error) return { error: v.error, estado: 422 };
+  const x = v.datos;
+  const cuando = ahora();
+  await env.ERP.batch([
+    env.ERP.prepare("INSERT INTO despachos (pedido_id, estado, contacto_nombre, contacto_telefono, direccion, ciudad, fecha_entrega, metodo_pago, creado, actualizado) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(pedido_id) DO UPDATE SET estado='POR_VALIDAR', contacto_nombre=excluded.contacto_nombre, contacto_telefono=excluded.contacto_telefono, direccion=excluded.direccion, ciudad=excluded.ciudad, fecha_entrega=excluded.fecha_entrega, metodo_pago=excluded.metodo_pago, motivo_devolucion=NULL, actualizado=excluded.actualizado WHERE despachos.estado IN ('POR_VALIDAR','DEVUELTO')")
+      .bind(pedido.id, "POR_VALIDAR", x.contacto_nombre, x.contacto_telefono, x.direccion, x.ciudad, x.fecha_entrega, x.metodo_pago, cuando, cuando),
+    env.ERP.prepare("INSERT INTO auditoria (timestamp, usuario, accion, payload_json, resultado) VALUES (?,?,?,?,?)")
+      .bind(cuando, quien, "DESPACHO_DATOS_RECIBIDOS", JSON.stringify({ pedido_id: pedido.id, ciudad: x.ciudad, fecha_entrega: x.fecha_entrega, metodo_pago: x.metodo_pago }), "Esperando validación de un asesor"),
+  ]);
+  return { ok: true, metodo_pago: METODOS_PAGO[x.metodo_pago] };
 }
 
 async function guardarDatosDespacho(request, env) {
@@ -290,23 +315,66 @@ async function guardarDatosDespacho(request, env) {
   if (!/^PED-\d{4,}$/.test(id) || wa.length < 8) return fallo("Pedido o número no válido.", 400);
   const pedido = await uno(env, "SELECT * FROM pedidos WHERE id=?", id);
   if (!pedido || pedido.wa_id !== wa) return fallo("Ese pedido no está a nombre de este número.", 404);
-  if (pedido.estado !== "APROBADO") return fallo("Solo se piden datos de despacho de pedidos aceptados.", 409);
-  const actual = await uno(env, "SELECT estado FROM despachos WHERE pedido_id=?", id);
-  if (actual && !["POR_VALIDAR", "DEVUELTO"].includes(actual.estado)) {
-    return fallo(actual.estado === "DESPACHADO" ? "Ese pedido ya fue despachado." : "Los datos ya fueron validados por un asesor; para cambiarlos hable con él.", 409);
+  const r = await registrarDatosDespacho(env, pedido, d, "agente-ia");
+  if (r.error) return fallo(r.error, r.estado);
+  return json({ ok: true, pedido_id: id, estado: "POR_VALIDAR", metodo_pago: r.metodo_pago });
+}
+
+// ---------- formulario de despacho del cliente (enlace firmado, sin contraseña) ----------
+// El enlace lleva el vencimiento y una firma de (pedido, número de WhatsApp, vencimiento): solo sirve para ese pedido,
+// no se puede adivinar ni reutilizar para otro, y deja de servir al validar el asesor los datos.
+
+const DURACION_ENLACE_S = 7 * 24 * 3600;
+
+async function enlaceDespacho(env, origen, pedido) {
+  if (!configurado(env) || !pedido.wa_id) return null;
+  // El vencimiento se redondea al día: el mismo pedido da siempre el mismo enlace durante el día (el agente lo cita y lo verifica)
+  const vence = (Math.floor(Date.now() / 86400000) + 1) * 86400 + DURACION_ENLACE_S;
+  const firma = await firmarTexto(env, `despacho|${pedido.id}|${pedido.wa_id}|${vence}`);
+  return `${origen}/despacho/?p=${pedido.id}&t=${vence}.${firma}`;
+}
+
+async function pedidoDelEnlace(env, id, token) {
+  const [vence, firma] = String(token || "").split(".");
+  if (!/^PED-\d{4,}$/.test(String(id)) || !/^\d{9,11}$/.test(vence || "") || Number(vence) < Date.now() / 1000) return null;
+  const pedido = await uno(env, "SELECT * FROM pedidos WHERE id=?", id);
+  if (!pedido || !pedido.wa_id) return null;
+  return (await firmaValida(env, `despacho|${pedido.id}|${pedido.wa_id}|${vence}`, firma)) ? pedido : null;
+}
+
+async function formularioDespacho(request, env, url) {
+  if (!env.ERP) return fallo("El ERP no está configurado.", 503);
+  const ip = request.headers.get("cf-connecting-ip") || "local";
+  if (env.LIMITE_FORM && !(await env.LIMITE_FORM.limit({ key: ip })).success) return fallo("Demasiados intentos. Espere un minuto.", 429);
+  const ruta = url.pathname.replace(/^\/api\/despacho/, "");
+  const enlaceMalo = () => fallo("Este enlace no es válido o venció. Pídale al asistente por WhatsApp uno nuevo.", 403);
+
+  if (ruta === "/info" && request.method === "GET") {
+    const pedido = await pedidoDelEnlace(env, url.searchParams.get("p"), url.searchParams.get("t"));
+    if (!pedido) return enlaceMalo();
+    const d = await uno(env, "SELECT * FROM despachos WHERE pedido_id=?", pedido.id);
+    const lineas = await todos(env, "SELECT l.cantidad, l.subtotal, p.nombre FROM pedido_detalle l JOIN productos p ON p.sku=l.sku WHERE l.pedido_id=?", pedido.id);
+    const hoy = hoyEcuador();
+    return json({
+      ok: true,
+      pedido: { id: pedido.id, estado: pedido.estado, total: pedido.total, destino: pedido.destino, lineas },
+      despacho: d ? { estado: d.estado, motivo_devolucion: d.motivo_devolucion, contacto_nombre: d.contacto_nombre, contacto_telefono: d.contacto_telefono, direccion: d.direccion, ciudad: d.ciudad, fecha_entrega: d.fecha_entrega, metodo_pago: d.metodo_pago } : null,
+      editable: pedido.estado === "APROBADO" && (!d || ["POR_VALIDAR", "DEVUELTO"].includes(d.estado)),
+      fecha_minima: hoy, fecha_maxima: sumarDias(hoy, 90), metodos_pago: METODOS_PAGO,
+    });
   }
-  const cliente = await buscarCliente(env, pedido.cliente_id);
-  const v = validarDatosDespacho(d, cliente, pedido);
-  if (v.error) return fallo(v.error, 422);
-  const x = v.datos;
-  const cuando = ahora();
-  await env.ERP.batch([
-    env.ERP.prepare("INSERT INTO despachos (pedido_id, estado, contacto_nombre, contacto_telefono, direccion, ciudad, fecha_entrega, metodo_pago, creado, actualizado) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(pedido_id) DO UPDATE SET estado='POR_VALIDAR', contacto_nombre=excluded.contacto_nombre, contacto_telefono=excluded.contacto_telefono, direccion=excluded.direccion, ciudad=excluded.ciudad, fecha_entrega=excluded.fecha_entrega, metodo_pago=excluded.metodo_pago, motivo_devolucion=NULL, actualizado=excluded.actualizado WHERE despachos.estado IN ('POR_VALIDAR','DEVUELTO')")
-      .bind(id, "POR_VALIDAR", x.contacto_nombre, x.contacto_telefono, x.direccion, x.ciudad, x.fecha_entrega, x.metodo_pago, cuando, cuando),
-    env.ERP.prepare("INSERT INTO auditoria (timestamp, usuario, accion, payload_json, resultado) VALUES (?,?,?,?,?)")
-      .bind(cuando, "agente-ia", "DESPACHO_DATOS_RECIBIDOS", JSON.stringify({ pedido_id: id, ciudad: x.ciudad, fecha_entrega: x.fecha_entrega, metodo_pago: x.metodo_pago }), "Esperando validación de un asesor"),
-  ]);
-  return json({ ok: true, pedido_id: id, estado: "POR_VALIDAR", metodo_pago: METODOS_PAGO[x.metodo_pago] });
+  if (ruta === "/enviar" && request.method === "POST") {
+    if (!mismoOrigen(request)) return fallo("Origen no permitido.", 403);
+    const { d, error } = await cuerpoJson(request);
+    if (error) return error;
+    const pedido = await pedidoDelEnlace(env, d.p, d.t);
+    if (!pedido) return enlaceMalo();
+    const r = await registrarDatosDespacho(env, pedido, d, "cliente-formulario");
+    if (r.error) return fallo(r.error, r.estado);
+    await avisarCliente(env, pedido.wa_id, `Recibimos los datos de entrega de su pedido ${pedido.id}. Un asesor los revisa y le confirmamos por aquí.`, "Formulario de despacho recibido");
+    return json({ ok: true, estado: "POR_VALIDAR" });
+  }
+  return fallo("No encontrado.", 404);
 }
 
 // Avisa al cliente por WhatsApp y deja el aviso en su conversación
@@ -319,7 +387,7 @@ async function avisarCliente(env, wa, aviso, detalle, ok = true) {
   return enviado;
 }
 
-async function accionDespacho(env, { id, accion, usuario, motivo, transportista, referencia }) {
+async function accionDespacho(env, { id, accion, usuario, motivo, transportista, referencia, origen }) {
   const pedido = await uno(env, "SELECT * FROM pedidos WHERE id=?", id);
   const d = await uno(env, "SELECT * FROM despachos WHERE pedido_id=?", id);
   if (!pedido || pedido.estado !== "APROBADO") return fallo("No se encontró un pedido aceptado con ese número.", 404);
@@ -354,7 +422,7 @@ async function accionDespacho(env, { id, accion, usuario, motivo, transportista,
         .bind(cuando, quien, "DESPACHO_DEVUELTO", JSON.stringify({ pedido_id: id, motivo: razon }), "El cliente debe corregir"),
     ]);
     estadoNuevo = "DEVUELTO";
-    aviso = `Para despachar su pedido ${id} necesitamos corregir un dato: ${razon}\nResponda por aquí con el dato correcto y lo revisamos de nuevo.`;
+    aviso = `Para despachar su pedido ${id} necesitamos corregir un dato: ${razon}\n${(await enlaceDespacho(env, origen, pedido)) ? `Corríjalo aquí: ${await enlaceDespacho(env, origen, pedido)}` : "Responda por aquí con el dato correcto y lo revisamos de nuevo."}`;
   } else {
     if (d.estado !== "VALIDADO") return fallo("Solo se despacha un pedido con datos validados.", 409);
     const lineas = await todos(env, "SELECT * FROM pedido_detalle WHERE pedido_id=?", id);
@@ -394,7 +462,7 @@ async function listarDespachos(env, limite) {
 
 // ---------- puerta de la plataforma: /api/plataforma/* ----------
 
-async function decidirPedido(env, { id, accion, usuario, motivo }) {
+async function decidirPedido(env, { id, accion, usuario, motivo, origen }) {
   const pedido = await uno(env, "SELECT * FROM pedidos WHERE id=?", id);
   if (!pedido) return fallo("No se encontró el pedido.", 404);
   if (pedido.estado !== "PENDIENTE") return fallo(`Este pedido ya está ${pedido.estado.toLowerCase()}.`, 409);
@@ -440,7 +508,8 @@ async function decidirPedido(env, { id, accion, usuario, motivo }) {
       throw e;
     }
     movimientos = await todos(env, "SELECT sku, bodega, cantidad, disponible_antes, disponible_despues, reservado_despues FROM movimientos WHERE pedido_id=? ORDER BY id", id);
-    aviso = `✅ ¡Su pedido ${id} fue aprobado!\n${lineasParaCliente(lineas)}\nTotal: ${dinero(pedido.total)}\nLa flor quedó reservada en ${[...new Set(lineas.map((l) => l.bodega))].join(", ")}. Para programar el despacho envíeme por aquí: ${DATOS_DESPACHO}.`;
+    const enlace = await enlaceDespacho(env, origen, pedido);
+    aviso = `✅ ¡Su pedido ${id} fue aprobado!\n${lineasParaCliente(lineas)}\nTotal: ${dinero(pedido.total)}\nLa flor quedó reservada en ${[...new Set(lineas.map((l) => l.bodega))].join(", ")}. ${enlace ? `Para programar el despacho complete estos datos (2 minutos): ${enlace}` : `Para programar el despacho envíeme por aquí: ${DATOS_DESPACHO}.`}`;
   }
 
   const enviado = await enviarWhatsapp(env, pedido.wa_id, aviso);
@@ -501,7 +570,7 @@ async function plataforma(request, env, url) {
     const { d, error } = await cuerpoJson(request);
     if (error) return error;
     if (!/^PED-\d{4,}$/.test(String(d.id)) || !["aprobar", "rechazar"].includes(d.accion)) return fallo("Datos no válidos.", 400);
-    return decidirPedido(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo });
+    return decidirPedido(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo, origen: url.origin });
   }
   if (ruta === "/despachos" && metodo === "GET") {
     return json({ ok: true, despachos: await listarDespachos(env, limite) });
@@ -511,7 +580,7 @@ async function plataforma(request, env, url) {
     const { d, error } = await cuerpoJson(request);
     if (error) return error;
     if (!/^PED-\d{4,}$/.test(String(d.id)) || !["validar", "devolver", "despachar"].includes(d.accion)) return fallo("Datos no válidos.", 400);
-    return accionDespacho(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo, transportista: d.transportista, referencia: d.referencia });
+    return accionDespacho(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo, transportista: d.transportista, referencia: d.referencia, origen: url.origin });
   }
   if (ruta === "/inventario" && metodo === "GET") {
     const q = texto(url.searchParams.get("q"), 40).replace(/[%_\\]/g, "").trim();
@@ -560,6 +629,7 @@ async function plataforma(request, env, url) {
 
 export async function atenderErp(request, env, url) {
   if (url.pathname.startsWith("/api/erp/")) return erpAgente(request, env, url);
+  if (url.pathname.startsWith("/api/despacho/")) return formularioDespacho(request, env, url);
   if (url.pathname.startsWith("/api/plataforma/")) return plataforma(request, env, url);
   return null;
 }

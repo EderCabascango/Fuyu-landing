@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <title>Datos de entrega · Fuyu</title>
+    <link rel="icon" href="../assets/fuyudatoslogo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../plataforma/plataforma.css">
+    <link rel="stylesheet" href="despacho.css">
+</head>
+<body>
+    <main class="acceso despacho">
+        <div class="tarjeta">
+            <div class="marca"><img src="../assets/fuyudatoslogo.png" alt="" width="36" height="36"><span>Fuyu</span></div>
+            <h1>Datos de entrega</h1>
+            <p class="nota" id="estado">Cargando su pedido…</p>
+            <div id="resumen" hidden></div>
+            <div class="resultado mal" id="devuelto" hidden></div>
+
+            <form id="form" autocomplete="on" hidden novalidate>
+                <label for="contacto_nombre">Nombre de quien recibe</label>
+                <input id="contacto_nombre" name="contacto_nombre" type="text" autocomplete="name" maxlength="80" required>
+
+                <label for="contacto_telefono">Teléfono de contacto</label>
+                <input id="contacto_telefono" name="contacto_telefono" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="0991234567" required>
+
+                <label for="direccion">Dirección de entrega</label>
+                <input id="direccion" name="direccion" type="text" autocomplete="street-address" maxlength="200" placeholder="Calle, número y referencia" required>
+
+                <label for="ciudad">Ciudad</label>
+                <input id="ciudad" name="ciudad" type="text" autocomplete="address-level2" maxlength="60" required>
+
+                <label for="fecha_entrega">Fecha de entrega</label>
+                <input id="fecha_entrega" name="fecha_entrega" type="date" required>
+
+                <label for="metodo_pago">Método de pago</label>
+                <select id="metodo_pago" name="metodo_pago" required></select>
+                <p class="ayuda">Un asesor revisa estos datos y se comunica con usted por WhatsApp para coordinar el pago.</p>
+
+                <p class="error" id="error" role="alert"></p>
+                <button class="boton primario" type="submit" id="enviar">Enviar datos</button>
+            </form>
+        </div>
+    </main>
+    <script src="despacho.js"></script>
+</body>
+</html>
