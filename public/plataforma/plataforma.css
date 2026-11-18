@@ -141,3 +141,11 @@ td small { color: var(--suave); }
     .acciones .boton { flex: 1 1 100%; }
     .contenedor { padding: 12px; }
 }
+
+/* Interruptor del agente de WhatsApp */
+.agente-estado { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--borde, #d9dde6); border-radius: 12px; background: #fff; }
+.agente-estado b { display: block; }
+.agente-estado span { font-size: 14px; color: #5b6475; }
+.agente-estado.encendido { border-color: #a9d8b8; background: #f1faf4; }
+.agente-estado.apagado { border-color: #f2b8b5; background: #fdf3f2; }

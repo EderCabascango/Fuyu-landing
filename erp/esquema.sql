@@ -137,3 +137,11 @@ CREATE TABLE despachos_salidas (
 );
 
 CREATE INDEX idx_despachos_estado ON despachos(estado, actualizado);
+
+-- Ajustes de la plataforma. 'agente_activo' = '1' enciende y '0' apaga el agente de WhatsApp (sin fila = encendido)
+CREATE TABLE ajustes (
+    clave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL,
+    actualizado TEXT,
+    por TEXT
+);

@@ -63,6 +63,39 @@ function tabla(cabeceras, filas, numericas = []) {
   return caja;
 }
 
+// ---------- interruptor del agente ----------
+
+let agenteActivo = null;
+
+async function cargarAgente() {
+  const r = await api("/agente");
+  if (!r.ok) return;
+  agenteActivo = r.activo;
+  const caja = $("#agente-estado");
+  caja.classList.toggle("encendido", r.activo);
+  caja.classList.toggle("apagado", !r.activo);
+  $("#agente-titulo").textContent = r.activo ? "Agente de WhatsApp: ENCENDIDO" : "Agente de WhatsApp: APAGADO";
+  $("#agente-detalle").textContent = r.activo
+    ? "Responde solo a los clientes que escriben al número."
+    : "No responde a nadie: una persona puede escribir desde el número. Los pedidos pendientes se siguen aprobando aquí.";
+  const b = $("#agente-boton");
+  b.textContent = r.activo ? "Apagar agente" : "Encender agente";
+  b.className = `boton chico ${r.activo ? "rojo" : "verde"}`;
+  b.disabled = false;
+}
+
+$("#agente-boton").addEventListener("click", async () => {
+  if (agenteActivo === null) return;
+  const quiere = !agenteActivo;
+  const pregunta = quiere ? "¿Encender el agente? Volverá a responder a los clientes por WhatsApp." : "¿Apagar el agente? Dejará de responder a los clientes por WhatsApp.";
+  if (!confirm(pregunta)) return;
+  const b = $("#agente-boton");
+  b.disabled = true;
+  const r = await api("/agente", { method: "POST", body: JSON.stringify({ activo: quiere }) });
+  if (!r.ok) aviso(r.error || "No se pudo cambiar el estado del agente.");
+  await cargarAgente();
+});
+
 // ---------- cifras ----------
 
 async function cargarResumen() {
@@ -424,12 +457,14 @@ $("#salir").addEventListener("click", async () => {
   location.href = "/plataforma/entrar";
 });
 
+cargarAgente();
 cargarResumen();
 cargarPendientes();
 cargarHistorial();
 // Los pedidos nuevos aparecen solos mientras la pestaña está a la vista
 setInterval(() => {
   if (document.visibilityState !== "visible") return;
+  cargarAgente();
   if (!$("#vista-pedidos").hidden) { cargarResumen(); cargarPendientes(); }
   if (!$("#vista-despachos").hidden) { cargarResumen(); cargarDespachos(); }
 }, 15000);

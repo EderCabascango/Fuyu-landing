@@ -90,6 +90,14 @@ async function buscarCliente(env, q) {
   return c ? { ...c, credito_disponible: redondear(c.limite_credito - c.saldo_pendiente) } : null;
 }
 
+// ---------- interruptor del agente ----------
+
+// Sin fila = encendido. La plataforma lo apaga/enciende; el agente lo consulta antes de responder a un cliente.
+async function estadoAgente(env) {
+  const f = await uno(env, "SELECT valor, actualizado, por FROM ajustes WHERE clave='agente_activo'");
+  return { activo: !f || f.valor === "1", actualizado: f?.actualizado || null, por: f?.por || null };
+}
+
 // ---------- puerta del agente: /api/erp/* ----------
 
 async function erpAgente(request, env, url) {
@@ -108,6 +116,7 @@ async function erpAgente(request, env, url) {
   if (ruta === "/clientes" && metodo === "GET") {
     return json({ ok: true, cliente: await buscarCliente(env, url.searchParams.get("q")) });
   }
+  if (ruta === "/agente" && metodo === "GET") return json({ ok: true, ...(await estadoAgente(env)) });
   if (ruta === "/clientes/whatsapp" && metodo === "POST") return registrarClienteWhatsapp(request, env);
   if (ruta === "/pedidos/pendiente" && metodo === "POST") return crearPedidoPendiente(request, env);
   if (ruta === "/despachos/pendientes" && metodo === "GET") {
@@ -578,6 +587,18 @@ async function plataforma(request, env, url) {
     if (error) return error;
     if (!/^PED-\d{4,}$/.test(String(d.id)) || !["aprobar", "rechazar"].includes(d.accion)) return fallo("Datos no válidos.", 400);
     return decidirPedido(env, { id: d.id, accion: d.accion, usuario: d.usuario, motivo: d.motivo, origen: url.origin });
+  }
+  if (ruta === "/agente" && metodo === "GET") return json({ ok: true, ...(await estadoAgente(env)) });
+  if (ruta === "/agente" && metodo === "POST") {
+    if (!mismoOrigen(request)) return fallo("Origen no permitido.", 403);
+    const { d, error } = await cuerpoJson(request);
+    if (error) return error;
+    if (typeof d.activo !== "boolean") return fallo("Datos no válidos.", 400);
+    const quien = texto(d.usuario, 80) || "plataforma";
+    await env.ERP.prepare("INSERT INTO ajustes (clave, valor, actualizado, por) VALUES ('agente_activo', ?1, ?2, ?3) ON CONFLICT(clave) DO UPDATE SET valor=?1, actualizado=?2, por=?3")
+      .bind(d.activo ? "1" : "0", ahora(), quien).run();
+    await auditar(env, quien, d.activo ? "AGENTE_ENCENDIDO" : "AGENTE_APAGADO", {}, "Interruptor de la plataforma");
+    return json({ ok: true, ...(await estadoAgente(env)) });
   }
   if (ruta === "/despachos" && metodo === "GET") {
     return json({ ok: true, despachos: await listarDespachos(env, limite) });
